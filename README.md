@@ -1,8 +1,19 @@
-Raptor Master Academy
+# Raptor Master Academy
 
-Jeu officiel du groupe Master Compétition du CNE Paris.
+Jeu officieux du groupe Master Compétition du CNE Paris.
 
-Toute ressemblance avec des personnes existants ou ayant existé serait purement fortuite.
+Toute ressemblance avec des personnes existant ou ayant existé serait purement fortuite.
 
 https://raptor-master-academy.netlify.app
 
+## Versions !
+
+v1.4 : nouveaux personnages : Zoé et Mafe
+
+v1.3 : le coach Theo débarque en grand sur presque tout l'écran quand on se fait choper + bonus « moins de coups de bras » (+100 m si un niveau est bouclé en moins de 15 mouvements)
+
+v1.2 : classement mondial partagé en ligne (Top 10), avec repli sur le classement local si hors-ligne
+
+v1.1 : pack de 6 canettes par niveau pour Camille, saisie du nom du joueur + classement Top 5 local, et correctif d'affichage des boutons sur smartphone
+
+v1.0 : version initiale — jeu façon Frogger (5 lignes d'eau, esquive des hippos, 3 vies, score qui monte), 4 nageurs jouables (Arnaud, Leo, Raph, Camille) avec pouvoir et faiblesse, coach Theo qui sanctionne les 2 lignes de droite, contrôles clavier + tactiles, graphismes stickers, musique 8-bit, niveaux progressifs, médailles (vies bonus), meilleur score, logo et favicon
