@@ -1,0 +1,1116 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Raptor Master Academy 🏊🦛</title>
+<link rel="icon" type="image/png" href="assets/raptor.png">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    height: 100%;
+    font-family: "Trebuchet MS", "Segoe UI", system-ui, sans-serif;
+    background: #04263f;
+    color: #fff;
+    overflow: hidden;
+    user-select: none;
+    touch-action: manipulation;
+  }
+  #app {
+    position: relative;
+    width: 100vw;
+    height: 100vh;      /* repli */
+    height: 100dvh;     /* hauteur réellement visible sur mobile (barres du navigateur incluses) */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  #game {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    max-width: 520px;
+    max-height: 100vh;
+    margin: 0 auto;
+    background: #063a5e;
+    box-shadow: 0 0 40px rgba(0,0,0,.5);
+    overflow: hidden;
+  }
+  canvas { display: block; width: 100%; height: 100%; }
+
+  /* HUD */
+  #hud {
+    position: absolute; top: 0; left: 0; right: 0;
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 10px 14px;
+    font-size: 20px; font-weight: bold;
+    text-shadow: 0 2px 4px rgba(0,0,0,.6);
+    pointer-events: none;
+    z-index: 5;
+  }
+  #hud .right { text-align: right; }
+  #score { font-variant-numeric: tabular-nums; }
+
+  /* Bandeau Sylvie */
+  #sylvieBanner {
+    position: absolute; top: 46px; left: 0; right: 0;
+    text-align: center; padding: 8px;
+    background: rgba(214, 40, 40, .92);
+    font-weight: bold; font-size: 15px;
+    letter-spacing: .3px;
+    z-index: 6; display: none;
+    animation: pulse .6s infinite alternate;
+  }
+  @keyframes pulse { from { opacity: .75; } to { opacity: 1; } }
+
+  /* Boutons tactiles */
+  #controls {
+    position: absolute; bottom: 0; left: 0; right: 0;
+    display: flex; justify-content: space-between; gap: 10px;
+    padding: 14px;
+    padding-bottom: calc(14px + env(safe-area-inset-bottom, 0px));
+    z-index: 5;
+  }
+  .btn {
+    flex: 1; padding: 18px 0;
+    font-size: 30px;
+    background: rgba(255,255,255,.14);
+    border: 2px solid rgba(255,255,255,.28);
+    border-radius: 16px;
+    color: #fff; cursor: pointer;
+    backdrop-filter: blur(2px);
+  }
+  .btn:active { background: rgba(255,255,255,.32); transform: scale(.96); }
+  #btnAction { flex: 1.3; }
+  .btn .ico { width: 34px; height: 34px; fill: #fff; display: inline-block; vertical-align: middle; }
+
+  /* Overlays */
+  .overlay {
+    position: absolute; inset: 0;
+    background: linear-gradient(180deg, rgba(4,38,63,.92), rgba(2,25,42,.96));
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    text-align: center; padding: 24px;
+    z-index: 10; overflow-y: auto;
+  }
+  .hidden { display: none !important; }
+  #logo { width: 150px; max-width: 55%; height: auto; margin-bottom: 6px;
+          filter: drop-shadow(0 4px 10px rgba(0,0,0,.5)); }
+  .overlay h1 { font-size: 30px; margin-bottom: 4px; line-height: 1.1; }
+  .overlay h1 .emoji { font-size: 34px; }
+  .overlay .subtitle { font-size: 14px; opacity: .8; margin-bottom: 20px; }
+  .overlay .prompt { font-size: 16px; opacity: .9; margin-bottom: 14px; }
+
+  .cards { display: flex; flex-direction: column; gap: 12px; width: 100%; max-width: 380px; }
+  .card {
+    display: flex; align-items: center; gap: 14px;
+    text-align: left;
+    padding: 14px; border-radius: 16px;
+    background: rgba(255,255,255,.08);
+    border: 2px solid rgba(255,255,255,.15);
+    cursor: pointer;
+  }
+  .card:hover, .card:active { background: rgba(90,200,250,.22); border-color: #5ac8fa; }
+  .card .avatar { font-size: 42px; flex-shrink: 0; width: 56px; text-align: center; }
+  .card .avatarImg { height: 60px; object-fit: contain; }
+  .card .name { font-size: 20px; font-weight: bold; }
+  .card .power { font-size: 13px; color: #9fe6ff; margin-top: 3px; }
+  .card .weak  { font-size: 13px; color: #ffb3b3; margin-top: 2px; }
+
+  .bigbtn {
+    margin-top: 22px; padding: 15px 34px;
+    font-size: 20px; font-weight: bold;
+    background: #ffb703; color: #04263f;
+    border: none; border-radius: 30px; cursor: pointer;
+    box-shadow: 0 4px 0 #d69200;
+  }
+  .bigbtn:active { transform: translateY(3px); box-shadow: 0 1px 0 #d69200; }
+  #finalScore { font-size: 26px; font-weight: bold; margin: 10px 0; color: #ffb703; }
+  .hint { font-size: 12px; opacity: .6; margin-top: 18px; line-height: 1.5; }
+  .footer { font-size: 11px; opacity: .45; margin-top: 14px; letter-spacing: .3px; }
+
+  /* HUD : niveau + bouton son */
+  #hud .center { display: flex; align-items: center; gap: 8px; }
+  #level { font-size: 16px; opacity: .92; }
+  #muteBtn {
+    pointer-events: auto;
+    background: rgba(255,255,255,.14);
+    border: 2px solid rgba(255,255,255,.28);
+    border-radius: 10px; color: #fff; cursor: pointer;
+    font-size: 15px; padding: 3px 8px; line-height: 1;
+  }
+  #muteBtn:active { transform: scale(.94); }
+
+  /* HUD médailles (progression vers vie bonus) */
+  #medals {
+    position: absolute; top: 42px; left: 14px;
+    font-size: 15px; font-weight: bold; letter-spacing: .5px;
+    text-shadow: 0 2px 4px rgba(0,0,0,.6);
+    z-index: 5; pointer-events: none;
+  }
+
+  /* Bandeau montée de niveau */
+  #levelBanner {
+    position: absolute; top: 46px; left: 0; right: 0;
+    text-align: center; padding: 8px;
+    background: rgba(46, 196, 130, .95);
+    font-weight: bold; font-size: 17px; letter-spacing: .3px;
+    z-index: 7; display: none;
+  }
+
+  /* Records */
+  .highline { font-size: 15px; color: #ffe08a; margin-bottom: 14px; }
+  #newRecord { color: #7CFC98; font-weight: bold; font-size: 16px; margin: 4px 0; display: none; }
+
+  /* Champ nom */
+  .namerow { margin-bottom: 12px; font-size: 14px; display: flex; align-items: center; justify-content: center; gap: 8px; }
+  .namerow label { opacity: .85; }
+  #nameInput {
+    background: rgba(255,255,255,.12);
+    border: 2px solid rgba(255,255,255,.25);
+    border-radius: 10px; color: #fff;
+    padding: 6px 10px; font-size: 15px; text-align: center;
+    width: 180px; font-family: inherit;
+  }
+  #nameInput:focus { outline: none; border-color: #5ac8fa; background: rgba(255,255,255,.18); }
+
+  /* Tableau des scores (Top 5) */
+  .board { width: 100%; max-width: 340px; margin: 4px auto 14px; }
+  .board .title { font-weight: bold; color: #ffe08a; margin-bottom: 6px; font-size: 15px; }
+  .board .row {
+    display: flex; justify-content: space-between; gap: 8px;
+    padding: 4px 10px; border-radius: 8px; font-size: 14px;
+  }
+  .board .row.me { background: rgba(255,183,3,.28); }
+  .board .row .who { text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .board .row .who small { opacity: .6; }
+  .board .row .sc { color: #ffe08a; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .board .empty { opacity: .5; font-size: 13px; }
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="game">
+    <canvas id="canvas"></canvas>
+
+    <div id="hud" class="hidden">
+      <div class="left" id="lives">❤️❤️❤️</div>
+      <div class="center">
+        <span id="level">Niv. 1</span>
+        <button id="muteBtn" aria-label="Son">🔊</button>
+      </div>
+      <div class="right"><span id="score">0</span> m</div>
+    </div>
+
+    <div id="medals" class="hidden"></div>
+    <div id="sylvieBanner">🧑‍🏫 Le coach Theo te surveille — dos à deux bras !</div>
+    <div id="levelBanner"></div>
+
+    <div id="controls" class="hidden">
+      <button class="btn" id="btnLeft" aria-label="Gauche">
+        <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><polygon points="16,3 6,12 16,21"/></svg>
+      </button>
+      <button class="btn" id="btnAction" aria-label="Pouvoir">⚡</button>
+      <button class="btn" id="btnRight" aria-label="Droite">
+        <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><polygon points="8,3 18,12 8,21"/></svg>
+      </button>
+    </div>
+
+    <!-- Menu -->
+    <div id="menu" class="overlay">
+      <img id="logo" src="assets/raptor.png" alt="" onerror="this.style.display='none'">
+      <h1>Raptor Master Academy</h1>
+      <div class="subtitle">Évite les hippos. Change de ligne. Survis.</div>
+      <div class="namerow">
+        <label for="nameInput">Ton nom :</label>
+        <input id="nameInput" type="text" maxlength="16" autocomplete="off" spellcheck="false">
+      </div>
+      <div id="menuBoard" class="board"></div>
+      <div class="prompt">Choisis ton nageur :</div>
+      <div class="cards" id="cards"></div>
+      <div class="hint">
+        ◀ ▶ : changer de ligne &nbsp;•&nbsp; ⚡ (Espace) : pouvoir spécial<br>
+        Ne traîne pas dans les 2 lignes de droite… le coach Theo veille !
+      </div>
+      <div class="footer">v1.2 &nbsp;·&nbsp; 💡 C'est Arthur qui a eu l'idée</div>
+    </div>
+
+    <!-- Game Over -->
+    <div id="gameover" class="overlay hidden">
+      <h1>💦 Game Over</h1>
+      <div class="subtitle" id="goName"></div>
+      <div id="finalScore">0 m</div>
+      <div id="newRecord">🎉 Nouveau record !</div>
+      <div id="goBoard" class="board"></div>
+      <button class="bigbtn" id="replayBtn">Rejouer</button>
+      <div class="hint">Un autre nageur, peut-être ?</div>
+    </div>
+  </div>
+</div>
+
+<script>
+(() => {
+  "use strict";
+
+  // ---------- Config ----------
+  const LANES = 5;
+  const BASE_HIPPO_SPEED = 190;      // px/s au niveau 1
+  const LEVEL_TIME = 16;             // s de survie par niveau
+  const SPEED_PER_LEVEL = 72;        // px/s par niveau — courbe ×3 : niveau 4 ≈ ancien niveau 10
+  const SPAWN_PER_LEVEL = 0.39;      // réduction de l'intervalle de spawn par niveau (×3)
+  const BASE_SPAWN = 1.2;            // s entre spawns au niveau 1
+  const MIN_SPAWN = 0.4;             // s minimum
+
+  // Médailles (ramassables → vies bonus)
+  const MEDAL_SPAWN_MIN = 4.5;       // s min entre 2 médailles
+  const MEDAL_SPAWN_MAX = 8;         // s max
+  const MEDAL_TYPES = [
+    { key: "bronze", emoji: "🥉", color: "#cd7f32", weight: 60, need: 3 },
+    { key: "silver", emoji: "🥈", color: "#c0c0c0", weight: 30, need: 2 },
+    { key: "gold",   emoji: "🥇", color: "#ffd700", weight: 10, need: 1 },
+  ];
+  const SWIMMER_Y_RATIO = 0.74;      // position verticale du nageur (au-dessus des boutons)
+  const HIT_PAD = 0.55;              // tolérance de collision (fraction de cellule)
+  const INVINCIBLE_TIME = 1.4;       // s d'invincibilité après un coup
+  const SYLVIE_LIMIT = 5;            // s dans lignes 4/5 avant pénalité
+  const PENALTY_TIME = 10;           // s de dos à deux bras
+  const PENALTY_MOVE_CD = 0.9;       // s entre 2 déplacements sous pénalité
+  const NORMAL_MOVE_CD = 0.09;       // anti double-déclenchement clavier
+
+  // Réglages par personnage
+  const CHARACTERS = [
+    {
+      id: "arnaud", name: "Arnaud", emoji: "💪", back: "🏊", color: "#ff9f1c",
+      img: "arnaud",
+      power: "Saute 2 lignes d'un coup",
+      weak: "Aucune faiblesse — le GOAT",
+      jump: 2, actionCd: 0,
+    },
+    {
+      id: "leo", name: "Leo", emoji: "🤿", back: "🏊", color: "#2ec4b6",
+      img: "leo", imgDive: "leo-dive",
+      power: "Sa coulée mirifique lui permet de passer sous les hippos !",
+      weak: "Nage sur le dos : les hippos surgissent tard",
+      jump: 1, actionCd: 3, diveTime: 1.5, lateVision: true,
+    },
+    {
+      id: "raph", name: "Raph", emoji: "✂️", back: "🏊", color: "#e71d36",
+      img: "raph",
+      power: "Découpe l'hippo droit devant lui",
+      weak: "Remous : 2 appuis pour changer de ligne",
+      jump: 1, actionCd: 2.5, doubleTap: true,
+    },
+    {
+      id: "camille", name: "Camille", emoji: "🥫", back: "🏊", color: "#f4a300",
+      img: "camille",
+      power: "Dégomme les hippos à la canette — pack de 6 par niveau 🥫",
+      weak: "De plus en plus lent au fil de la partie",
+      jump: 1, actionCd: 0.7, canThrow: true, slowdown: true, cansPerLevel: 6,
+    },
+  ];
+
+  // ---------- État ----------
+  const canvas = document.getElementById("canvas");
+  const ctx = canvas.getContext("2d");
+  let W = 0, H = 0, laneW = 0, cellH = 0, DPR = 1;
+
+  let gameState = "menu"; // menu | playing | gameover
+  let char = null;
+  let player, hippos, projectiles, medalItems, medalTimer, score, spawnTimer, elapsed, lastTime, level;
+  let sylviePenaltyActive = false;
+  let levelBannerTimer = 0;
+
+  let playerName = "Nageur loisir";
+  try { playerName = localStorage.getItem("rma_name") || "Nageur loisir"; } catch (e) {}
+  let scores = [];
+  try { scores = JSON.parse(localStorage.getItem("rma_scores") || "[]"); } catch (e) { scores = []; }
+  let muted = false;
+  try { muted = localStorage.getItem("rma_muted") === "1"; } catch (e) {}
+
+  // ---------- Chargeur d'images (sprites) ----------
+  // Les PNG présents dans assets/ remplacent les pastilles emoji ; sinon on garde
+  // le rendu emoji (repli automatique). Clé = nom de fichier (sans .png).
+  const IMAGES = {};
+  const SPRITE_FILES = ["arnaud", "leo", "leo-dive", "raph", "camille", "theo", "hippo", "backstroke"];
+  function preloadSprites() {
+    for (const name of SPRITE_FILES) {
+      const img = new Image();
+      img.onload = () => { IMAGES[name] = img; };
+      img.onerror = () => { /* fichier absent -> on garde le repli emoji */ };
+      img.src = "assets/" + name + ".png";
+    }
+  }
+  function sprite(name) {
+    const img = name && IMAGES[name];
+    return img && img.complete && img.naturalWidth ? img : null;
+  }
+  // Dessine un sprite carré/quelconque centré sur (cx,cy), ajusté dans une boîte
+  function drawSprite(img, cx, cy, box) {
+    const scale = box / Math.max(img.naturalWidth, img.naturalHeight);
+    const w = img.naturalWidth * scale, h = img.naturalHeight * scale;
+    ctx.drawImage(img, cx - w / 2, cy - h / 2, w, h);
+  }
+  // Halo coloré doux derrière le nageur (identité + visibilité sur l'eau)
+  function drawHalo(cx, cy, r, hex) {
+    const c = hexToRgb(hex);
+    const grd = ctx.createRadialGradient(cx, cy, r * 0.15, cx, cy, r);
+    grd.addColorStop(0, "rgba(" + c + ",0.55)");
+    grd.addColorStop(1, "rgba(" + c + ",0)");
+    ctx.fillStyle = grd;
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  function hexToRgb(hex) {
+    const n = parseInt(hex.slice(1), 16);
+    return ((n >> 16) & 255) + "," + ((n >> 8) & 255) + "," + (n & 255);
+  }
+
+  function resize() {
+    // Filet de sécurité mobile : force la hauteur visible réelle (barres du navigateur comprises)
+    document.getElementById("app").style.height = window.innerHeight + "px";
+    const r = canvas.getBoundingClientRect();
+    DPR = Math.min(window.devicePixelRatio || 1, 2);
+    W = r.width; H = r.height;
+    canvas.width = Math.round(W * DPR);
+    canvas.height = Math.round(H * DPR);
+    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+    laneW = W / LANES;
+    cellH = laneW; // cellules ~carrées pour la collision
+  }
+  window.addEventListener("resize", resize);
+  window.addEventListener("orientationchange", resize);
+  if (window.visualViewport) window.visualViewport.addEventListener("resize", resize);
+
+  // ---------- Démarrage / reset ----------
+  function newGame(character) {
+    char = character;
+    resize();
+    player = {
+      lane: 2,
+      lives: 3,
+      invincible: 0,
+      diving: 0,        // temps de plongée restant (Leo)
+      actionCd: 0,
+      moveCd: 0,
+      tapArmed: -1,     // pour le double-tap de Raph : dernière direction amorcée
+      tapWindow: 0,
+      sylvieTimer: 0,   // temps cumulé récent dans lignes 4/5
+      penalty: 0,       // temps de pénalité restant
+      slashFx: 0,       // effet visuel de découpe
+      wakeFx: 0,        // effet visuel de remous
+      medals: { gold: 0, silver: 0, bronze: 0 }, // progression médailles
+      cans: character.cansPerLevel || 0,         // canettes restantes (Camille)
+    };
+    hippos = [];
+    projectiles = [];
+    medalItems = [];
+    medalTimer = 3;
+    score = 0;
+    elapsed = 0;
+    level = 1;
+    spawnTimer = 0.6;
+    sylviePenaltyActive = false;
+    levelBannerTimer = 0;
+    gameState = "playing";
+    document.getElementById("menu").classList.add("hidden");
+    document.getElementById("gameover").classList.add("hidden");
+    document.getElementById("levelBanner").style.display = "none";
+    document.getElementById("hud").classList.remove("hidden");
+    document.getElementById("controls").classList.remove("hidden");
+    document.getElementById("medals").classList.remove("hidden");
+    updateHud();
+    updateAmmo();
+    Sound.setTempo(1);
+    Sound.start();
+    lastTime = performance.now();
+  }
+
+  function gameOver() {
+    gameState = "gameover";
+    Sound.stop();
+    Sound.gameOver();
+    const final = Math.floor(score);
+    const oldTop = scores.length ? scores[0].score : 0;
+    const record = final > oldTop;
+    const entry = { name: playerName, score: final, char: char.name };
+    scores.push(entry);
+    scores.sort((a, b) => b.score - a.score);
+    scores = scores.slice(0, 5);
+    const myIdx = scores.indexOf(entry); // -1 si pas dans le top 5
+    try { localStorage.setItem("rma_scores", JSON.stringify(scores)); } catch (e) {}
+
+    document.getElementById("controls").classList.add("hidden");
+    document.getElementById("hud").classList.add("hidden");
+    document.getElementById("medals").classList.add("hidden");
+    document.getElementById("sylvieBanner").style.display = "none";
+    document.getElementById("levelBanner").style.display = "none";
+    document.getElementById("goName").textContent = char.emoji + " " + char.name + " — Niveau " + level;
+    document.getElementById("finalScore").textContent = final + " m";
+    document.getElementById("newRecord").style.display = record ? "block" : "none";
+    renderBoard(document.getElementById("goBoard"), scores, myIdx, "🏆 Top 5 (local)"); // affichage immédiat
+    submitScore(entry); // puis mise à jour avec le classement mondial
+    document.getElementById("gameover").classList.remove("hidden");
+  }
+
+  // ---------- Entrées (partagées clavier / tactile) ----------
+  function moveLeft()  { tryMove(-1); }
+  function moveRight() { tryMove(+1); }
+
+  function tryMove(dir) {
+    if (gameState !== "playing") return;
+    if (player.moveCd > 0) return;
+
+    // Double-tap de Raph : le premier appui amorce, le second (rapide) exécute
+    if (char.doubleTap && player.penalty <= 0) {
+      if (player.tapArmed === dir && player.tapWindow > 0) {
+        player.tapArmed = -1; player.tapWindow = 0;
+        player.wakeFx = 0.3;
+        // exécute le déplacement ci-dessous
+      } else {
+        player.tapArmed = dir;
+        player.tapWindow = 0.5; // fenêtre pour le second appui
+        player.wakeFx = 0.2;
+        return; // premier appui : on attend le second
+      }
+    }
+
+    const step = char.jump || 1;
+    const target = clamp(player.lane + dir * step, 0, LANES - 1);
+    if (target === player.lane) return;
+    player.lane = target;
+    // Faiblesse de Camille : de plus en plus lent au fil du temps
+    let baseCd = NORMAL_MOVE_CD;
+    if (char.slowdown) baseCd += Math.min(elapsed * 0.02, 0.9);
+    player.moveCd = player.penalty > 0 ? PENALTY_MOVE_CD : baseCd;
+    Sound.move();
+  }
+
+  function useAction() {
+    if (gameState !== "playing") return;
+    if (player.actionCd > 0) return;
+
+    if (char.diveTime) {                 // Leo : plongée
+      player.diving = char.diveTime;
+      player.actionCd = char.actionCd;
+      Sound.power();
+    } else if (char.doubleTap) {         // Raph : découpe l'hippo devant lui
+      let bestIdx = -1, bestDist = Infinity;
+      const py = playerY();
+      for (let i = 0; i < hippos.length; i++) {
+        const h = hippos[i];
+        if (h.lane !== player.lane) continue;
+        const d = py - h.y;
+        if (d >= -cellH && d < bestDist) { bestDist = d; bestIdx = i; }
+      }
+      if (bestIdx >= 0) hippos.splice(bestIdx, 1);
+      player.slashFx = 0.3;
+      player.actionCd = char.actionCd;
+      Sound.slash();
+    } else if (char.canThrow) {           // Camille : jet de canette vers le haut
+      if (player.cans <= 0) { Sound.move(); return; } // pack vide → clic à sec
+      player.cans -= 1;
+      projectiles.push({ lane: player.lane, y: playerY() - laneW * 0.5 });
+      player.actionCd = char.actionCd;
+      Sound.slash();
+      updateAmmo();
+    }
+    // Arnaud : pas de bouton d'action dédié (son pouvoir = saut permanent).
+    // On lui offre un mini-dash : saute 2 lignes vers le centre par défaut.
+    else {
+      const dir = player.lane <= 2 ? +1 : -1;
+      player.lane = clamp(player.lane + dir * 2, 0, LANES - 1);
+      player.moveCd = NORMAL_MOVE_CD;
+      Sound.power();
+    }
+  }
+
+  document.addEventListener("keydown", (e) => {
+    if (e.target && e.target.tagName === "INPUT") return; // ne pas gêner la saisie du nom
+    if (e.repeat) return;
+    if (e.key === "ArrowLeft")  { moveLeft();  e.preventDefault(); }
+    else if (e.key === "ArrowRight") { moveRight(); e.preventDefault(); }
+    else if (e.key === " " || e.key === "Spacebar") { useAction(); e.preventDefault(); }
+    else if ((e.key === "Enter") && gameState !== "playing") {
+      // rien : la sélection se fait par clic
+    }
+  });
+
+  function bindBtn(id, fn) {
+    const el = document.getElementById(id);
+    el.addEventListener("click", (e) => { e.preventDefault(); fn(); });
+    el.addEventListener("touchstart", (e) => { e.preventDefault(); fn(); }, { passive: false });
+  }
+  bindBtn("btnLeft", moveLeft);
+  bindBtn("btnRight", moveRight);
+  bindBtn("btnAction", useAction);
+
+  // ---------- Boucle ----------
+  function loop(now) {
+    requestAnimationFrame(loop);
+    const dt = Math.min((now - (lastTime || now)) / 1000, 0.05);
+    lastTime = now;
+    if (gameState === "playing") { update(dt); }
+    render();
+  }
+
+  function update(dt) {
+    elapsed += dt;
+    score += dt * 10; // ~10 m/s
+
+    // Niveaux : le rythme s'accélère à chaque palier
+    const newLevel = 1 + Math.floor(elapsed / LEVEL_TIME);
+    if (newLevel !== level) {
+      level = newLevel;
+      onLevelUp();
+    }
+    if (levelBannerTimer > 0) {
+      levelBannerTimer -= dt;
+      if (levelBannerTimer <= 0) document.getElementById("levelBanner").style.display = "none";
+    }
+
+    // Timers joueur
+    player.invincible = Math.max(0, player.invincible - dt);
+    player.diving = Math.max(0, player.diving - dt);
+    player.actionCd = Math.max(0, player.actionCd - dt);
+    player.moveCd = Math.max(0, player.moveCd - dt);
+    player.slashFx = Math.max(0, player.slashFx - dt);
+    player.wakeFx = Math.max(0, player.wakeFx - dt);
+    if (player.tapWindow > 0) {
+      player.tapWindow -= dt;
+      if (player.tapWindow <= 0) player.tapArmed = -1;
+    }
+
+    // Piège Sylvie : lignes 4 et 5 = index 3 et 4
+    const inDangerZone = player.lane >= 3;
+    if (player.penalty > 0) {
+      player.penalty -= dt;
+      if (player.penalty <= 0) { sylviePenaltyActive = false; player.sylvieTimer = 0; }
+    } else if (inDangerZone) {
+      player.sylvieTimer += dt;
+      if (player.sylvieTimer >= SYLVIE_LIMIT) {
+        player.penalty = PENALTY_TIME;
+        sylviePenaltyActive = true;
+      }
+    } else {
+      player.sylvieTimer = Math.max(0, player.sylvieTimer - dt * 2); // se recharge doucement
+    }
+    document.getElementById("sylvieBanner").style.display = sylviePenaltyActive ? "block" : "none";
+
+    // Spawn des hippos : intervalle réduit selon le niveau
+    const spawnInterval = Math.max(MIN_SPAWN, BASE_SPAWN - (level - 1) * SPAWN_PER_LEVEL);
+    spawnTimer -= dt;
+    if (spawnTimer <= 0) {
+      spawnTimer = spawnInterval * (0.7 + Math.random() * 0.6);
+      spawnHippo();
+    }
+
+    // Déplacement + collision
+    const py = playerY();
+    for (let i = hippos.length - 1; i >= 0; i--) {
+      const h = hippos[i];
+      h.y += (h.speed) * dt;
+
+      // Collision : même ligne, chevauchement vertical, sauf plongée/invincible
+      if (h.lane === player.lane && player.invincible <= 0 && player.diving <= 0) {
+        if (Math.abs(h.y - py) < cellH * HIT_PAD) {
+          hippos.splice(i, 1);
+          hit();
+          continue;
+        }
+      }
+      if (h.y > H + cellH) hippos.splice(i, 1);
+    }
+
+    // Canettes de Camille : montent et détruisent le 1er hippo touché sur la ligne
+    const PROJ_SPEED = 640;
+    for (let i = projectiles.length - 1; i >= 0; i--) {
+      const p = projectiles[i];
+      p.y -= PROJ_SPEED * dt;
+      let done = p.y < -cellH;
+      for (let j = hippos.length - 1; j >= 0; j--) {
+        if (hippos[j].lane === p.lane && Math.abs(hippos[j].y - p.y) < cellH * 0.6) {
+          hippos.splice(j, 1);
+          done = true;
+          break;
+        }
+      }
+      if (done) projectiles.splice(i, 1);
+    }
+
+    // Médailles : apparition aléatoire, chute, ramassage
+    medalTimer -= dt;
+    if (medalTimer <= 0) {
+      medalTimer = MEDAL_SPAWN_MIN + Math.random() * (MEDAL_SPAWN_MAX - MEDAL_SPAWN_MIN);
+      spawnMedal();
+    }
+    for (let i = medalItems.length - 1; i >= 0; i--) {
+      const m = medalItems[i];
+      m.y += m.speed * dt;
+      if (m.lane === player.lane && Math.abs(m.y - py) < cellH * 0.6) {
+        collectMedal(m.type);
+        medalItems.splice(i, 1);
+        continue;
+      }
+      if (m.y > H + cellH) medalItems.splice(i, 1);
+    }
+
+    updateHud(); // rafraîchit score / niveau / vies chaque frame
+  }
+
+  function spawnHippo() {
+    const lane = Math.floor(Math.random() * LANES);
+    const baseSpeed = BASE_HIPPO_SPEED + (level - 1) * SPEED_PER_LEVEL;
+    // Leo : « vision tardive » — l'hippo apparaît déjà bas dans l'écran (~2 s avant impact)
+    let startY = -cellH;
+    if (char && char.lateVision) {
+      const py = playerY();
+      startY = Math.max(py - baseSpeed * 2.0, cellH); // ~2 s de trajet avant le nageur
+    }
+    const speed = baseSpeed + Math.random() * 30;
+    hippos.push({ lane, y: startY, speed });
+  }
+
+  function onLevelUp() {
+    Sound.setTempo(level);
+    Sound.levelUp();
+    let msg = "🚀 Niveau " + level + " — ça accélère !";
+    if (char.cansPerLevel) {              // Camille : nouveau pack de 6
+      player.cans = char.cansPerLevel;
+      updateAmmo();
+      msg = "🚀 Niveau " + level + " — pack de 🥫 rechargé !";
+    }
+    showBanner(msg, "rgba(46,196,130,.95)");
+  }
+
+  // Affiche les munitions de Camille sur le bouton d'action (⚡ sinon)
+  function updateAmmo() {
+    const b = document.getElementById("btnAction");
+    if (char && char.canThrow) {
+      b.textContent = "🥫×" + player.cans;
+      b.style.fontSize = "22px";
+    } else {
+      b.textContent = "⚡";
+      b.style.fontSize = "";
+    }
+  }
+
+  function showBanner(text, bg) {
+    const b = document.getElementById("levelBanner");
+    b.textContent = text;
+    b.style.background = bg;
+    b.style.display = "block";
+    levelBannerTimer = 1.6;
+  }
+
+  // ---------- Médailles ----------
+  function pickMedalType() {
+    const total = MEDAL_TYPES.reduce((s, m) => s + m.weight, 0);
+    let r = Math.random() * total;
+    for (const m of MEDAL_TYPES) { if ((r -= m.weight) < 0) return m; }
+    return MEDAL_TYPES[0];
+  }
+  function spawnMedal() {
+    const lane = Math.floor(Math.random() * LANES);
+    const speed = (BASE_HIPPO_SPEED + (level - 1) * SPEED_PER_LEVEL) * 0.65; // un peu plus lentes
+    medalItems.push({ lane, y: -cellH, type: pickMedalType(), speed });
+  }
+  function collectMedal(type) {
+    Sound.coin();
+    const c = player.medals;
+    c[type.key] += 1;
+    if (c[type.key] >= type.need) {
+      c[type.key] = 0;
+      player.lives += 1;
+      Sound.levelUp();
+      showBanner("🏅 " + medalLabel(type.key) + " complète — vie bonus ! ❤️", "rgba(232,184,0,.95)");
+    }
+    updateHud();
+  }
+  function medalLabel(k) {
+    return k === "gold" ? "Médaille d'or" : k === "silver" ? "2 médailles d'argent" : "3 médailles de bronze";
+  }
+
+  function hit() {
+    player.lives -= 1;
+    player.invincible = INVINCIBLE_TIME;
+    Sound.hurt();
+    updateHud();
+    if (player.lives <= 0) gameOver();
+  }
+
+  function updateHud() {
+    const lives = Math.max(0, player.lives);
+    document.getElementById("lives").textContent =
+      "❤️".repeat(lives) + (lives < 3 ? "🖤".repeat(3 - lives) : "");
+    document.getElementById("score").textContent = Math.floor(score);
+    document.getElementById("level").textContent = "Niv. " + level;
+    const m = player.medals;
+    document.getElementById("medals").textContent =
+      "🥇" + m.gold + "/1  🥈" + m.silver + "/2  🥉" + m.bronze + "/3";
+  }
+
+  // ---------- Rendu ----------
+  function playerY() { return H * SWIMMER_Y_RATIO; }
+
+  function render() {
+    ctx.clearRect(0, 0, W, H);
+    // Eau
+    const g = ctx.createLinearGradient(0, 0, 0, H);
+    g.addColorStop(0, "#0a6fa8");
+    g.addColorStop(1, "#053a5e");
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, W, H);
+
+    // Couloirs
+    for (let l = 0; l <= LANES; l++) {
+      const x = l * laneW;
+      // Zone de danger (lignes 4-5) légèrement teintée
+      if (l >= 3 && l < LANES) {
+        ctx.fillStyle = "rgba(255, 80, 80, 0.06)";
+        ctx.fillRect(x, 0, laneW, H);
+      }
+      ctx.strokeStyle = "rgba(255,255,255,0.18)";
+      ctx.setLineDash([14, 12]);
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(x, 0);
+      ctx.lineTo(x, H);
+      ctx.stroke();
+    }
+    ctx.setLineDash([]);
+
+    if (gameState === "menu") return;
+
+    // Hippos
+    const hippoR = laneW * 0.34;
+    const hippoImg = sprite("hippo");
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    for (const h of hippos) {
+      const x = h.lane * laneW + laneW / 2;
+      if (hippoImg) drawSprite(hippoImg, x, h.y, laneW * 1.05);
+      else drawHippo(x, h.y, hippoR);
+    }
+
+    // Canettes en vol (Camille)
+    if (projectiles.length) {
+      ctx.font = (laneW * 0.5) + "px serif";
+      for (const p of projectiles) {
+        ctx.fillText("🥫", p.lane * laneW + laneW / 2, p.y);
+      }
+    }
+
+    // Médailles à ramasser
+    for (const m of medalItems) {
+      const mx = m.lane * laneW + laneW / 2;
+      drawToken(mx, m.y, laneW * 0.28, m.type.color, "#ffffff", m.type.emoji, laneW * 0.4);
+    }
+
+    // Nageur
+    const px = player.lane * laneW + laneW / 2;
+    const py = playerY();
+    const swimSize = laneW * 0.62;
+
+    // Effet de remous (Raph)
+    if (player.wakeFx > 0) {
+      ctx.strokeStyle = "rgba(255,255,255," + (player.wakeFx) + ")";
+      ctx.lineWidth = 3;
+      for (let r = 1; r <= 3; r++) {
+        ctx.beginPath();
+        ctx.arc(px, py, swimSize * 0.4 * r, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+    }
+
+    // Clignotement d'invincibilité
+    const blink = player.invincible > 0 && Math.floor(player.invincible * 12) % 2 === 0;
+    if (!blink) {
+      // Choix du sprite selon l'état
+      let icon = char.emoji || "🏊";
+      let alpha = 1;
+      let img = sprite(char.img);
+      if (player.diving > 0) {
+        icon = "🤿"; alpha = 0.5;
+        img = sprite(char.imgDive) || img; // sprite de plongée si fourni
+      } else if (sylviePenaltyActive) {
+        icon = "🛌";
+        img = sprite("backstroke") || img; // sprite dos à deux bras si fourni
+      }
+      ctx.globalAlpha = alpha;
+      if (img) {
+        drawHalo(px, py, swimSize * 0.72, char.color || "#ff9f1c");
+        drawSprite(img, px, py, laneW * 1.5);
+      } else {
+        drawToken(px, py, swimSize * 0.5, char.color || "#ff9f1c", "#ffffff", icon, swimSize * 0.9);
+      }
+      ctx.globalAlpha = 1;
+    }
+
+    // Effet de découpe (Raph)
+    if (player.slashFx > 0) {
+      ctx.strokeStyle = "rgba(255,255,255," + Math.min(1, player.slashFx * 3) + ")";
+      ctx.lineWidth = 5;
+      ctx.beginPath();
+      ctx.moveTo(px - swimSize * 0.6, py - swimSize);
+      ctx.lineTo(px + swimSize * 0.6, py - swimSize * 2);
+      ctx.stroke();
+    }
+
+    // Le coach Theo sur le côté quand la pénalité est active
+    if (sylviePenaltyActive) {
+      const sy = py - cellH * 1.2;
+      const coachImg = sprite("theo");
+      if (coachImg) drawSprite(coachImg, laneW * 0.5, sy, laneW * 1.2);
+      else { ctx.font = (laneW * 0.7) + "px serif"; ctx.fillText("🧑‍🏫", laneW * 0.5, sy); }
+    }
+  }
+
+  // Pastille pleine + emoji par-dessus (toujours visible, même sans police emoji couleur)
+  function drawToken(x, y, r, fill, stroke, emoji, emojiSize) {
+    ctx.beginPath();
+    ctx.arc(x, y, r, 0, Math.PI * 2);
+    ctx.fillStyle = fill;
+    ctx.fill();
+    ctx.lineWidth = Math.max(2, r * 0.14);
+    ctx.strokeStyle = stroke;
+    ctx.stroke();
+    ctx.font = emojiSize + "px serif";
+    ctx.fillText(emoji, x, y + r * 0.04);
+  }
+
+  // Hippo dessiné (corps + yeux + naseaux) avec l'emoji superposé
+  function drawHippo(x, y, r) {
+    ctx.save();
+    // corps
+    ctx.beginPath();
+    ctx.ellipse(x, y, r * 1.15, r, 0, 0, Math.PI * 2);
+    ctx.fillStyle = "#8a6ca0";
+    ctx.fill();
+    ctx.lineWidth = Math.max(2, r * 0.14);
+    ctx.strokeStyle = "#3f2f49";
+    ctx.stroke();
+    // oreilles
+    ctx.fillStyle = "#8a6ca0";
+    for (const s of [-1, 1]) {
+      ctx.beginPath();
+      ctx.arc(x + s * r * 0.7, y - r * 0.75, r * 0.22, 0, Math.PI * 2);
+      ctx.fill(); ctx.stroke();
+    }
+    // yeux
+    for (const s of [-1, 1]) {
+      ctx.beginPath();
+      ctx.arc(x + s * r * 0.4, y - r * 0.35, r * 0.2, 0, Math.PI * 2);
+      ctx.fillStyle = "#fff"; ctx.fill();
+      ctx.beginPath();
+      ctx.arc(x + s * r * 0.4, y - r * 0.32, r * 0.09, 0, Math.PI * 2);
+      ctx.fillStyle = "#111"; ctx.fill();
+    }
+    // naseaux
+    ctx.fillStyle = "#3f2f49";
+    for (const s of [-1, 1]) {
+      ctx.beginPath();
+      ctx.ellipse(x + s * r * 0.3, y + r * 0.45, r * 0.12, r * 0.16, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.restore();
+    // emoji par-dessus si la police est dispo (Mac/iOS)
+    ctx.font = (r * 1.9) + "px serif";
+    ctx.fillText("🦛", x, y);
+  }
+
+  // ---------- Utilitaires ----------
+  function clamp(v, min, max) { return v < min ? min : v > max ? max : v; }
+
+  // ---------- Audio 8-bit (Web Audio, oscillateurs carrés) ----------
+  const Sound = (() => {
+    let actx = null, master = null, timer = null, step = 0, nextTime = 0, noteLen = 0.16;
+    // Mélodie enjouée en Do majeur (16 pas) + basse (8 pas). 0 = silence.
+    const MEL  = [523, 659, 784, 659, 523, 659, 784, 880, 784, 659, 587, 659, 523, 494, 523, 0];
+    const BASS = [131, 131, 175, 175, 196, 196, 147, 147];
+
+    function ensure() {
+      if (actx) return;
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return;
+      actx = new AC();
+      master = actx.createGain();
+      master.gain.value = muted ? 0 : 0.22;
+      master.connect(actx.destination);
+    }
+    function tone(freq, start, dur, type, vol) {
+      if (!actx || !freq) return;
+      const o = actx.createOscillator(), g = actx.createGain();
+      o.type = type; o.frequency.value = freq;
+      g.gain.setValueAtTime(0.0001, start);
+      g.gain.exponentialRampToValueAtTime(vol, start + 0.008);
+      g.gain.exponentialRampToValueAtTime(0.0001, start + dur);
+      o.connect(g); g.connect(master);
+      o.start(start); o.stop(start + dur + 0.02);
+    }
+    function sfx(freqs, dur, type, vol, gap) {
+      ensure();
+      if (!actx) return;
+      if (actx.state === "suspended") actx.resume();
+      const t0 = actx.currentTime + 0.01;
+      freqs.forEach((f, i) => tone(f, t0 + i * (gap || dur), dur * 0.9, type || "square", vol || 0.25));
+    }
+    function schedule() {
+      if (!actx) return;
+      while (nextTime < actx.currentTime + 0.12) {
+        const i = step % MEL.length;
+        tone(MEL[i], nextTime, noteLen * 0.85, "square", 0.14);
+        tone(BASS[i % BASS.length], nextTime, noteLen * 0.95, "triangle", 0.20);
+        nextTime += noteLen;
+        step++;
+      }
+    }
+    return {
+      start() {
+        ensure();
+        if (!actx) return;
+        if (actx.state === "suspended") actx.resume();
+        if (timer) return;
+        step = 0; nextTime = actx.currentTime + 0.1;
+        timer = setInterval(schedule, 30);
+      },
+      stop() { if (timer) { clearInterval(timer); timer = null; } },
+      setTempo(lvl) { noteLen = Math.max(0.10, 0.16 - (lvl - 1) * 0.007); },
+      move()     { sfx([740], 0.05, "square", 0.10); },
+      power()    { sfx([880, 1320], 0.07, "square", 0.18, 0.07); },
+      slash()    { sfx([1200, 300], 0.06, "sawtooth", 0.20, 0.05); },
+      hurt()     { sfx([200, 120], 0.18, "square", 0.30, 0.09); },
+      coin()     { sfx([988, 1319], 0.07, "square", 0.18, 0.06); },
+      levelUp()  { sfx([523, 659, 784, 1047], 0.10, "square", 0.20, 0.09); },
+      gameOver() { sfx([523, 392, 330, 262], 0.22, "triangle", 0.28, 0.16); },
+      toggleMute() {
+        muted = !muted;
+        try { localStorage.setItem("rma_muted", muted ? "1" : "0"); } catch (e) {}
+        if (master) master.gain.value = muted ? 0 : 0.22;
+        return muted;
+      },
+      isMuted() { return muted; },
+    };
+  })();
+
+  const muteBtn = document.getElementById("muteBtn");
+  function refreshMute() { muteBtn.textContent = Sound.isMuted() ? "🔇" : "🔊"; }
+  muteBtn.addEventListener("click", (e) => {
+    e.preventDefault(); e.stopPropagation();
+    Sound.toggleMute(); refreshMute();
+  });
+  document.addEventListener("keydown", (e) => {
+    if (e.target && e.target.tagName === "INPUT") return; // 'm' autorisé dans le nom
+    if (e.key === "m" || e.key === "M") { Sound.toggleMute(); refreshMute(); }
+  });
+
+  // ---------- Classement (mondial via Netlify, repli local) ----------
+  const API_URL = "/.netlify/functions/scores";
+  const GLOBAL_TOP = 10;
+  let globalScores = null; // null = indisponible → on affiche le Top 5 local
+
+  function boardTitle() {
+    return globalScores ? "🏆 Top " + GLOBAL_TOP + " mondial" : "🏆 Top 5 (local)";
+  }
+  function esc(s) {
+    return String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  }
+  function renderBoard(el, list, hl, title) {
+    if (!list || !list.length) {
+      el.innerHTML = '<div class="title">' + title + '</div><div class="empty">Aucun score pour l\'instant — à toi de jouer !</div>';
+      return;
+    }
+    let html = '<div class="title">' + title + '</div>';
+    list.forEach((e, i) => {
+      html += '<div class="row' + (i === hl ? " me" : "") + '">' +
+        '<span class="who">' + (i + 1) + ". " + esc(e.name) +
+        ' <small>(' + esc(e.char) + ")</small></span>" +
+        '<span class="sc">' + e.score + " m</span></div>";
+    });
+    el.innerHTML = html;
+  }
+  function refreshMenu() {
+    renderBoard(document.getElementById("menuBoard"), globalScores || scores, -1, boardTitle());
+  }
+  // Récupère le classement mondial (silencieux si indisponible : hors-ligne, file://…)
+  async function loadGlobal() {
+    try {
+      const res = await fetch(API_URL, { cache: "no-store" });
+      if (!res.ok) throw 0;
+      globalScores = await res.json();
+    } catch (e) {
+      globalScores = null;
+    }
+    refreshMenu();
+  }
+  // Envoie le score en fin de partie et met à jour l'écran game over
+  async function submitScore(entry) {
+    const goEl = document.getElementById("goBoard");
+    try {
+      const res = await fetch(API_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(entry),
+      });
+      if (!res.ok) throw 0;
+      globalScores = await res.json();
+      const hl = globalScores.findIndex(s => s.name === entry.name && s.score === entry.score && s.char === entry.char);
+      renderBoard(goEl, globalScores, hl, boardTitle());
+    } catch (e) {
+      renderBoard(goEl, scores, scores.indexOf(entry), "🏆 Top 5 (local)"); // repli
+    }
+  }
+
+  // Champ nom (mémorisé)
+  const nameInput = document.getElementById("nameInput");
+  nameInput.value = playerName;
+  nameInput.addEventListener("input", () => {
+    playerName = nameInput.value.trim() || "Nageur loisir";
+    try { localStorage.setItem("rma_name", playerName); } catch (e) {}
+  });
+  nameInput.addEventListener("blur", () => {
+    if (!nameInput.value.trim()) nameInput.value = "Nageur loisir";
+  });
+
+  // ---------- Menu : cartes personnages ----------
+  function buildMenu() {
+    const wrap = document.getElementById("cards");
+    wrap.innerHTML = "";
+    for (const c of CHARACTERS) {
+      const card = document.createElement("div");
+      card.className = "card";
+      // Avatar : sticker PNG si présent (repli sur l'emoji si 404)
+      const avatar = c.img
+        ? '<img class="avatar avatarImg" src="assets/' + c.img + '.png" alt="" ' +
+          "onerror=\"this.outerHTML='<div class=&quot;avatar&quot;>" + c.emoji + "</div>'\">"
+        : '<div class="avatar">' + c.emoji + '</div>';
+      card.innerHTML =
+        avatar +
+        '<div><div class="name">' + c.name + '</div>' +
+        '<div class="power">⚡ ' + c.power + '</div>' +
+        '<div class="weak">⚠️ ' + c.weak + '</div></div>';
+      card.addEventListener("click", () => newGame(c));
+      wrap.appendChild(card);
+    }
+  }
+
+  document.getElementById("replayBtn").addEventListener("click", () => {
+    document.getElementById("gameover").classList.add("hidden");
+    document.getElementById("menu").classList.remove("hidden");
+    refreshMenu();
+    loadGlobal();
+    gameState = "menu";
+  });
+
+  // ---------- Init ----------
+  preloadSprites();
+  buildMenu();
+  refreshMenu();
+  loadGlobal();
+  refreshMute();
+  resize();
+  requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>
