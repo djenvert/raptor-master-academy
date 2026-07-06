@@ -111,8 +111,8 @@
     cursor: pointer;
   }
   .card:hover, .card:active { background: rgba(90,200,250,.22); border-color: #5ac8fa; }
-  .card .avatar { font-size: 42px; flex-shrink: 0; width: 56px; text-align: center; }
-  .card .avatarImg { height: 60px; object-fit: contain; }
+  .card .avatar { font-size: 58px; flex-shrink: 0; width: 88px; text-align: center; }
+  .card .avatarImg { height: 96px; object-fit: contain; }
   .card .name { font-size: 20px; font-weight: bold; }
   .card .power { font-size: 13px; color: #9fe6ff; margin-top: 3px; }
   .card .weak  { font-size: 13px; color: #ffb3b3; margin-top: 2px; }
@@ -232,7 +232,7 @@
         ◀ ▶ : changer de ligne &nbsp;•&nbsp; ⚡ (Espace) : pouvoir spécial<br>
         Ne traîne pas dans les 2 lignes de droite… le coach Theo veille !
       </div>
-      <div class="footer">v1.3 &nbsp;·&nbsp; 💡 C'est Arthur qui a eu l'idée</div>
+      <div class="footer">v1.4 &nbsp;·&nbsp; 💡 C'est Arthur qui a eu l'idée</div>
     </div>
 
     <!-- Game Over -->
@@ -312,6 +312,20 @@
       weak: "De plus en plus lent au fil de la partie",
       jump: 1, actionCd: 0.7, canThrow: true, slowdown: true, cansPerLevel: 6,
     },
+    {
+      id: "mafe", name: "Mafe", emoji: "💨", back: "🏊‍♀️", color: "#e84393",
+      img: "mafe",
+      power: "Se déplace très vite",
+      weak: "Brasseuse, ne peut pas rester trop longtemps le long du mur sans se cogner…",
+      jump: 1, actionCd: 0, moveCd: 0.06, fastMove: true, bounceOuter: true,
+    },
+    {
+      id: "zoe", name: "Zoé", emoji: "🐐", back: "🏊‍♀️", color: "#8e44ad",
+      img: "zoe",
+      power: "Saute 2 lignes d'un coup",
+      weak: "Aucune faiblesse — la GOAT",
+      jump: 2, actionCd: 0,
+    },
   ];
 
   // ---------- État ----------
@@ -336,7 +350,7 @@
   // Les PNG présents dans assets/ remplacent les pastilles emoji ; sinon on garde
   // le rendu emoji (repli automatique). Clé = nom de fichier (sans .png).
   const IMAGES = {};
-  const SPRITE_FILES = ["arnaud", "leo", "leo-dive", "raph", "camille", "theo", "hippo", "backstroke"];
+  const SPRITE_FILES = ["arnaud", "leo", "leo-dive", "raph", "camille", "mafe", "zoe", "theo", "hippo", "backstroke"];
   function preloadSprites() {
     for (const name of SPRITE_FILES) {
       const img = new Image();
@@ -408,6 +422,7 @@
       cans: character.cansPerLevel || 0,         // canettes restantes (Camille)
       movesThisLevel: 0,                         // mouvements dans le niveau courant
       coachFx: 0,                                // timer d'apparition du coach en grand
+      outerTimer: 0,                             // temps sur une ligne extérieure (rebond de Mafe)
     };
     hippos = [];
     projectiles = [];
@@ -487,8 +502,8 @@
     if (target === player.lane) return;
     player.lane = target;
     player.movesThisLevel++;
-    // Faiblesse de Camille : de plus en plus lent au fil du temps
-    let baseCd = NORMAL_MOVE_CD;
+    // Vitesse de base par perso (Mafe = très rapide) + ralentissement de Camille
+    let baseCd = char.moveCd || NORMAL_MOVE_CD;
     if (char.slowdown) baseCd += Math.min(elapsed * 0.02, 0.9);
     player.moveCd = player.penalty > 0 ? PENALTY_MOVE_CD : baseCd;
     Sound.move();
@@ -535,13 +550,10 @@
 
   document.addEventListener("keydown", (e) => {
     if (e.target && e.target.tagName === "INPUT") return; // ne pas gêner la saisie du nom
-    if (e.repeat) return;
-    if (e.key === "ArrowLeft")  { moveLeft();  e.preventDefault(); }
-    else if (e.key === "ArrowRight") { moveRight(); e.preventDefault(); }
-    else if (e.key === " " || e.key === "Spacebar") { useAction(); e.preventDefault(); }
-    else if ((e.key === "Enter") && gameState !== "playing") {
-      // rien : la sélection se fait par clic
-    }
+    const allowRepeat = char && char.fastMove; // Mafe : déplacement en continu si on maintient
+    if (e.key === "ArrowLeft")  { if (e.repeat && !allowRepeat) return; moveLeft();  e.preventDefault(); }
+    else if (e.key === "ArrowRight") { if (e.repeat && !allowRepeat) return; moveRight(); e.preventDefault(); }
+    else if (e.key === " " || e.key === "Spacebar") { if (e.repeat) return; useAction(); e.preventDefault(); }
   });
 
   function bindBtn(id, fn) {
@@ -606,6 +618,22 @@
       player.sylvieTimer = Math.max(0, player.sylvieTimer - dt * 2); // se recharge doucement
     }
     document.getElementById("sylvieBanner").style.display = sylviePenaltyActive ? "block" : "none";
+
+    // Faiblesse de Mafe (brasse) : rebond vers l'intérieur si elle reste >1 s sur une ligne extérieure
+    if (char.bounceOuter) {
+      const onOuter = player.lane === 0 || player.lane === LANES - 1;
+      if (onOuter) {
+        player.outerTimer += dt;
+        if (player.outerTimer >= 1) {
+          player.lane += player.lane === 0 ? 1 : -1;
+          player.outerTimer = 0;
+          player.wakeFx = 0.25;
+          Sound.move();
+        }
+      } else {
+        player.outerTimer = 0;
+      }
+    }
 
     // Spawn des hippos : intervalle réduit selon le niveau
     const spawnInterval = Math.max(MIN_SPAWN, BASE_SPAWN - (level - 1) * SPAWN_PER_LEVEL);
