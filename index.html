@@ -232,7 +232,7 @@
         ◀ ▶ : changer de ligne &nbsp;•&nbsp; ⚡ (Espace) : pouvoir spécial<br>
         Ne traîne pas dans les 2 lignes de droite… le coach Theo veille !
       </div>
-      <div class="footer">v1.2 &nbsp;·&nbsp; 💡 C'est Arthur qui a eu l'idée</div>
+      <div class="footer">v1.3 &nbsp;·&nbsp; 💡 C'est Arthur qui a eu l'idée</div>
     </div>
 
     <!-- Game Over -->
@@ -269,6 +269,11 @@
     { key: "silver", emoji: "🥈", color: "#c0c0c0", weight: 30, need: 2 },
     { key: "gold",   emoji: "🥇", color: "#ffd700", weight: 10, need: 1 },
   ];
+
+  // Bonus "moins de coups de bras" : finir un niveau avec peu de mouvements
+  const FEW_MOVES_THRESHOLD = 15;    // nb max de mouvements dans le niveau (ajustable)
+  const FEW_MOVES_BONUS = 100;       // mètres offerts
+  const COACH_BIG_TIME = 2.5;        // s d'apparition du coach en grand
   const SWIMMER_Y_RATIO = 0.74;      // position verticale du nageur (au-dessus des boutons)
   const HIT_PAD = 0.55;              // tolérance de collision (fraction de cellule)
   const INVINCIBLE_TIME = 1.4;       // s d'invincibilité après un coup
@@ -401,6 +406,8 @@
       wakeFx: 0,        // effet visuel de remous
       medals: { gold: 0, silver: 0, bronze: 0 }, // progression médailles
       cans: character.cansPerLevel || 0,         // canettes restantes (Camille)
+      movesThisLevel: 0,                         // mouvements dans le niveau courant
+      coachFx: 0,                                // timer d'apparition du coach en grand
     };
     hippos = [];
     projectiles = [];
@@ -479,6 +486,7 @@
     const target = clamp(player.lane + dir * step, 0, LANES - 1);
     if (target === player.lane) return;
     player.lane = target;
+    player.movesThisLevel++;
     // Faiblesse de Camille : de plus en plus lent au fil du temps
     let baseCd = NORMAL_MOVE_CD;
     if (char.slowdown) baseCd += Math.min(elapsed * 0.02, 0.9);
@@ -576,6 +584,7 @@
     player.moveCd = Math.max(0, player.moveCd - dt);
     player.slashFx = Math.max(0, player.slashFx - dt);
     player.wakeFx = Math.max(0, player.wakeFx - dt);
+    player.coachFx = Math.max(0, player.coachFx - dt);
     if (player.tapWindow > 0) {
       player.tapWindow -= dt;
       if (player.tapWindow <= 0) player.tapArmed = -1;
@@ -591,6 +600,7 @@
       if (player.sylvieTimer >= SYLVIE_LIMIT) {
         player.penalty = PENALTY_TIME;
         sylviePenaltyActive = true;
+        player.coachFx = COACH_BIG_TIME; // Théo débarque en grand
       }
     } else {
       player.sylvieTimer = Math.max(0, player.sylvieTimer - dt * 2); // se recharge doucement
@@ -674,13 +684,24 @@
   function onLevelUp() {
     Sound.setTempo(level);
     Sound.levelUp();
+
+    // Bonus "moins de coups de bras" : niveau bouclé avec peu de mouvements
+    const fewMoves = player.movesThisLevel < FEW_MOVES_THRESHOLD;
+    if (fewMoves) score += FEW_MOVES_BONUS;
+    player.movesThisLevel = 0;
+
     let msg = "🚀 Niveau " + level + " — ça accélère !";
+    let bg = "rgba(46,196,130,.95)";
     if (char.cansPerLevel) {              // Camille : nouveau pack de 6
       player.cans = char.cansPerLevel;
       updateAmmo();
       msg = "🚀 Niveau " + level + " — pack de 🥫 rechargé !";
     }
-    showBanner(msg, "rgba(46,196,130,.95)");
+    if (fewMoves) {                        // le bonus prime sur l'affichage
+      msg = "🏅 +" + FEW_MOVES_BONUS + " m — spé moins de coups de bras !";
+      bg = "rgba(232,184,0,.95)";
+    }
+    showBanner(msg, bg);
   }
 
   // Affiche les munitions de Camille sur le bouton d'action (⚡ sinon)
@@ -782,6 +803,17 @@
 
     if (gameState === "menu") return;
 
+    // Le coach Théo débarque EN GROS quand on se fait choper (5 s à droite)
+    if (player.coachFx > 0) {
+      ctx.globalAlpha = 0.8 * Math.min(1, player.coachFx / COACH_BIG_TIME);
+      const coachImg = sprite("theo");
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      if (coachImg) drawSprite(coachImg, W / 2, H / 2, H * 0.95);
+      else { ctx.font = (Math.min(W, H) * 0.7) + "px serif"; ctx.fillText("🧑‍🏫", W / 2, H / 2); }
+      ctx.globalAlpha = 1;
+    }
+
     // Hippos
     const hippoR = laneW * 0.34;
     const hippoImg = sprite("hippo");
@@ -857,13 +889,6 @@
       ctx.stroke();
     }
 
-    // Le coach Theo sur le côté quand la pénalité est active
-    if (sylviePenaltyActive) {
-      const sy = py - cellH * 1.2;
-      const coachImg = sprite("theo");
-      if (coachImg) drawSprite(coachImg, laneW * 0.5, sy, laneW * 1.2);
-      else { ctx.font = (laneW * 0.7) + "px serif"; ctx.fillText("🧑‍🏫", laneW * 0.5, sy); }
-    }
   }
 
   // Pastille pleine + emoji par-dessus (toujours visible, même sans police emoji couleur)
