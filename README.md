@@ -8,6 +8,10 @@ https://raptor-master-academy.netlify.app
 
 ## Versions !
 
+v1.6 : cheat codes Raptor Summer Session — saisis le code obtenu après une séance d'entraînement en vrai dans le carnet, et 10 % de tes mètres IRL alimentent une réserve qui booste ton score de départ à la partie suivante (un code = une seule utilisation)
+
+v1.5 : bouton Ko-fi dans le menu
+
 v1.4 : nouveaux personnages : Zoé et Mafe
 
 v1.3 : le coach Theo débarque en grand sur presque tout l'écran quand on se fait choper + bonus « moins de coups de bras » (+100 m si un niveau est bouclé en moins de 15 mouvements)

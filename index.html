@@ -175,6 +175,29 @@
   }
   #nameInput:focus { outline: none; border-color: #5ac8fa; background: rgba(255,255,255,.18); }
 
+  /* Cheat code (Raptor Summer Session) */
+  .cheat { margin-top: 14px; }
+  #cheatInput {
+    background: rgba(255,255,255,.12);
+    border: 2px solid rgba(255,255,255,.25);
+    border-radius: 10px; color: #fff;
+    padding: 6px 10px; font-size: 14px; text-align: center;
+    width: 170px; font-family: "Courier New", monospace;
+    letter-spacing: 1px; text-transform: uppercase;
+  }
+  #cheatInput:focus { outline: none; border-color: #ffb703; background: rgba(255,255,255,.18); }
+  #cheatBtn {
+    background: rgba(255,183,3,.85); color: #04263f;
+    border: none; border-radius: 10px; cursor: pointer;
+    font-size: 14px; font-weight: bold; padding: 7px 12px;
+    font-family: inherit;
+  }
+  #cheatBtn:active { transform: scale(.94); }
+  .cheatmsg { font-size: 13px; min-height: 1.2em; margin-top: 6px; }
+  .cheatmsg.ok { color: #7CFC98; }
+  .cheatmsg.ko { color: #ffb3b3; }
+  .bonusline { font-size: 14px; color: #ffe08a; font-weight: bold; margin-top: 4px; }
+
   /* Tableau des scores (Top 5) */
   .board { width: 100%; max-width: 340px; margin: 4px auto 14px; }
   .board .title { font-weight: bold; color: #ffe08a; margin-bottom: 6px; font-size: 15px; }
@@ -233,7 +256,20 @@
         ◀ ▶ : changer de ligne &nbsp;•&nbsp; ⚡ (Espace) : pouvoir spécial<br>
         Ne traîne pas dans les 2 lignes de droite… le coach Theo veille !
       </div>
-      <div class="footer">v1.5 &nbsp;·&nbsp; 💡 C'est Arthur qui a eu l'idée</div>
+      <div class="cheat">
+        <div class="namerow">
+          <label for="cheatInput">🎮 Cheat code :</label>
+          <input id="cheatInput" type="text" maxlength="20" autocomplete="off" spellcheck="false" placeholder="RMA-…">
+          <button id="cheatBtn">OK</button>
+        </div>
+        <div id="cheatMsg" class="cheatmsg"></div>
+        <div id="bonusLine" class="bonusline"></div>
+        <div class="hint" style="margin-top:6px">
+          Nage en vrai avec Raptor Summer Session, récupère un code par séance :<br>
+          10 % de tes mètres IRL en bonus au départ de ta prochaine partie !
+        </div>
+      </div>
+      <div class="footer">v1.6 &nbsp;·&nbsp; 💡 C'est Arthur qui a eu l'idée</div>
       <div class="kofi">
         <script type='text/javascript' src='https://storage.ko-fi.com/cdn/widget/Widget_2.js'></script>
         <script type='text/javascript'>kofiwidget2.init('Paie moi un ☕️', '#0d64fa', 'V8M422PC2P');kofiwidget2.draw();</script>
@@ -446,6 +482,14 @@
     document.getElementById("hud").classList.remove("hidden");
     document.getElementById("controls").classList.remove("hidden");
     document.getElementById("medals").classList.remove("hidden");
+    // Réserve d'entraînement IRL (cheat codes) : consommée au départ
+    if (bonusBank > 0) {
+      score = bonusBank;
+      showBanner("💪 Entraînement IRL : départ à " + bonusBank + " m !", "rgba(232,184,0,.95)");
+      bonusBank = 0;
+      saveBank();
+      refreshBonusLine();
+    }
     updateHud();
     updateAmmo();
     Sound.setTempo(1);
@@ -1119,6 +1163,77 @@
     }
   }
 
+  // ---------- Cheat codes (Raptor Summer Session) ----------
+  // Spec partagée avec le carnet d'entraînement : docs/cheat-code-spec.md
+  // (repo raptor-summer-session). Format RMA-<mètres>-<nonce(4)+check(2)>,
+  // checksum FNV-1a 32 bits sur "<mètres>:<nonce>:RAPTOR2026" mod 1296.
+  const CHEAT_CONSTANT = "RAPTOR2026";
+  const CHEAT_BASE36 = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+  const CHEAT_RATE = 0.10;           // part des mètres IRL créditée
+  const CHEAT_MAX_METERS = 30000;    // borne du carnet (garde-fou)
+
+  let bonusBank = 0;
+  try { bonusBank = Math.max(0, parseInt(localStorage.getItem("rma_bonus") || "0", 10) || 0); } catch (e) {}
+  let usedCodes = [];
+  try { usedCodes = JSON.parse(localStorage.getItem("rma_codes") || "[]"); } catch (e) { usedCodes = []; }
+
+  function cheatFnv1a(s) {
+    let h = 2166136261;
+    for (let i = 0; i < s.length; i++) {
+      h ^= s.charCodeAt(i);
+      h = Math.imul(h, 16777619) >>> 0;
+    }
+    return h >>> 0;
+  }
+  // Renvoie { code, credit } si le code est valide, sinon null.
+  function parseCheatCode(raw) {
+    const code = String(raw).trim().toUpperCase();
+    const m = /^RMA-(\d+)-([0-9A-Z]{6})$/.exec(code);
+    if (!m) return null;
+    const meters = parseInt(m[1], 10);
+    if (!meters || meters > CHEAT_MAX_METERS) return null;
+    const nonce = m[2].slice(0, 4);
+    const v = cheatFnv1a(meters + ":" + nonce + ":" + CHEAT_CONSTANT) % 1296;
+    const expected = CHEAT_BASE36[Math.floor(v / 36)] + CHEAT_BASE36[v % 36];
+    if (expected !== m[2].slice(4)) return null;
+    return { code, credit: Math.floor(meters * CHEAT_RATE) };
+  }
+  function saveBank() {
+    try {
+      localStorage.setItem("rma_bonus", String(bonusBank));
+      localStorage.setItem("rma_codes", JSON.stringify(usedCodes.slice(-200)));
+    } catch (e) {}
+  }
+  function refreshBonusLine() {
+    document.getElementById("bonusLine").textContent = bonusBank > 0
+      ? "💪 Réserve d'entraînement : " + bonusBank + " m — départ boosté à la prochaine partie !"
+      : "";
+  }
+  function cheatFeedback(text, ok) {
+    const el = document.getElementById("cheatMsg");
+    el.textContent = text;
+    el.className = "cheatmsg " + (ok ? "ok" : "ko");
+  }
+  function redeemCheatCode() {
+    const input = document.getElementById("cheatInput");
+    const raw = input.value.trim();
+    if (!raw) return;
+    const parsed = parseCheatCode(raw);
+    if (!parsed) { cheatFeedback("Code invalide 🤨", false); Sound.hurt(); return; }
+    if (usedCodes.indexOf(parsed.code) !== -1) { cheatFeedback("Code déjà utilisé !", false); Sound.hurt(); return; }
+    usedCodes.push(parsed.code);
+    bonusBank += parsed.credit;
+    saveBank();
+    input.value = "";
+    cheatFeedback("+" + parsed.credit + " m dans la réserve ! 🏊", true);
+    refreshBonusLine();
+    Sound.coin();
+  }
+  document.getElementById("cheatBtn").addEventListener("click", (e) => { e.preventDefault(); redeemCheatCode(); });
+  document.getElementById("cheatInput").addEventListener("keydown", (e) => {
+    if (e.key === "Enter") { e.preventDefault(); redeemCheatCode(); }
+  });
+
   // Champ nom (mémorisé)
   const nameInput = document.getElementById("nameInput");
   nameInput.value = playerName;
@@ -1166,6 +1281,7 @@
   refreshMenu();
   loadGlobal();
   refreshMute();
+  refreshBonusLine();
   resize();
   requestAnimationFrame(loop);
 })();
