@@ -269,7 +269,7 @@
           10 % de tes mètres IRL en bonus au départ de ta prochaine partie !
         </div>
       </div>
-      <div class="footer">v1.6 &nbsp;·&nbsp; 💡 C'est Arthur qui a eu l'idée</div>
+      <div class="footer">v1.7 &nbsp;·&nbsp; 💡 C'est Arthur qui a eu l'idée</div>
       <div class="kofi">
         <script type='text/javascript' src='https://storage.ko-fi.com/cdn/widget/Widget_2.js'></script>
         <script type='text/javascript'>kofiwidget2.init('Paie moi un ☕️', '#0d64fa', 'V8M422PC2P');kofiwidget2.draw();</script>
@@ -314,6 +314,10 @@
   // Bonus "moins de coups de bras" : finir un niveau avec peu de mouvements
   const FEW_MOVES_THRESHOLD = 15;    // nb max de mouvements dans le niveau (ajustable)
   const FEW_MOVES_BONUS = 100;       // mètres offerts
+
+  const MAX_LIVES = 10;              // plafond de vies (médailles)
+  const CAMP_LIMIT = 7;              // s immobile sur la même ligne avant sanction
+  const CAMP_PENALTY = 100;          // mètres retirés quand le coach s'endort
   const COACH_BIG_TIME = 2.5;        // s d'apparition du coach en grand
   const SWIMMER_Y_RATIO = 0.74;      // position verticale du nageur (au-dessus des boutons)
   const HIT_PAD = 0.55;              // tolérance de collision (fraction de cellule)
@@ -350,8 +354,22 @@
       id: "camille", name: "Camille", emoji: "🥫", back: "🏊", color: "#f4a300",
       img: "camille",
       power: "Dégomme les hippos à la canette — pack de 6 par niveau 🥫",
-      weak: "De plus en plus lent au fil de la partie",
-      jump: 1, actionCd: 0.7, canThrow: true, slowdown: true, cansPerLevel: 6,
+      weak: "De plus en plus lente jusqu'au niveau 11, puis ça se stabilise",
+      jump: 1, actionCd: 0.7, canThrow: true, slowdown: true, cansPerLevel: 6, projEmoji: "🥫",
+    },
+    {
+      id: "helene", name: "Hélène", emoji: "🍺", back: "🏊‍♀️", color: "#f7c948",
+      img: "helene",
+      power: "Dégomme les hippos à la pinte — 2 pintes par niveau 🍺",
+      weak: "Pas de point faible — santé !",
+      jump: 1, actionCd: 0.7, canThrow: true, cansPerLevel: 2, projEmoji: "🍺",
+    },
+    {
+      id: "loic", name: "Loïc", emoji: "😂", back: "🏊", color: "#4cd137",
+      img: "loic",
+      power: "« Blague du jeudi » : tous les hippos meurent de rire — 1 fois par niveau",
+      weak: "Fiable uniquement le jeudi… sinon 1 chance sur 10",
+      jump: 1, actionCd: 0.5, joke: true, jokesPerLevel: 1,
     },
     {
       id: "mafe", name: "Mafe", emoji: "💨", back: "🏊‍♀️", color: "#e84393",
@@ -377,6 +395,7 @@
   let gameState = "menu"; // menu | playing | gameover
   let char = null;
   let player, hippos, projectiles, medalItems, medalTimer, score, spawnTimer, elapsed, lastTime, level;
+  let laughFx = []; // émojis 😂 laissés par la blague de Loïc
   let sylviePenaltyActive = false;
   let levelBannerTimer = 0;
 
@@ -391,7 +410,7 @@
   // Les PNG présents dans assets/ remplacent les pastilles emoji ; sinon on garde
   // le rendu emoji (repli automatique). Clé = nom de fichier (sans .png).
   const IMAGES = {};
-  const SPRITE_FILES = ["arnaud", "leo", "leo-dive", "raph", "camille", "mafe", "zoe", "theo", "hippo", "backstroke"];
+  const SPRITE_FILES = ["arnaud", "leo", "leo-dive", "raph", "camille", "mafe", "zoe", "helene", "loic", "theo", "sleepy-coach", "hippo", "backstroke"];
   function preloadSprites() {
     for (const name of SPRITE_FILES) {
       const img = new Image();
@@ -460,14 +479,18 @@
       slashFx: 0,       // effet visuel de découpe
       wakeFx: 0,        // effet visuel de remous
       medals: { gold: 0, silver: 0, bronze: 0 }, // progression médailles
-      cans: character.cansPerLevel || 0,         // canettes restantes (Camille)
+      cans: character.cansPerLevel || 0,         // munitions restantes (Camille, Hélène)
+      jokes: character.jokesPerLevel || 0,       // blagues restantes (Loïc)
       movesThisLevel: 0,                         // mouvements dans le niveau courant
       coachFx: 0,                                // timer d'apparition du coach en grand
+      sleepyFx: 0,                               // timer d'apparition du coach endormi
+      laneTimer: 0,                              // temps passé sans changer de ligne
       outerTimer: 0,                             // temps sur une ligne extérieure (rebond de Mafe)
     };
     hippos = [];
     projectiles = [];
     medalItems = [];
+    laughFx = [];
     medalTimer = 3;
     score = 0;
     elapsed = 0;
@@ -550,10 +573,16 @@
     const target = clamp(player.lane + dir * step, 0, LANES - 1);
     if (target === player.lane) return;
     player.lane = target;
+    player.laneTimer = 0;
     player.movesThisLevel++;
     // Vitesse de base par perso (Mafe = très rapide) + ralentissement de Camille
     let baseCd = char.moveCd || NORMAL_MOVE_CD;
-    if (char.slowdown) baseCd += Math.min(elapsed * 0.02, 0.9);
+    if (char.slowdown) {
+      // Camille ralentit progressivement jusqu'au début du niveau 11,
+      // puis sa vitesse reste constante (même lenteur max qu'avant : +0.9 s).
+      const plateau = 10 * LEVEL_TIME;
+      baseCd += Math.min(elapsed, plateau) * (0.9 / plateau);
+    }
     player.moveCd = player.penalty > 0 ? PENALTY_MOVE_CD : baseCd;
     Sound.move();
   }
@@ -579,12 +608,31 @@
       player.slashFx = 0.3;
       player.actionCd = char.actionCd;
       Sound.slash();
-    } else if (char.canThrow) {           // Camille : jet de canette vers le haut
+    } else if (char.canThrow) {           // Camille / Hélène : jet de projectile vers le haut
       if (player.cans <= 0) { Sound.move(); return; } // pack vide → clic à sec
       player.cans -= 1;
       projectiles.push({ lane: player.lane, y: playerY() - laneW * 0.5 });
       player.actionCd = char.actionCd;
       Sound.slash();
+      updateAmmo();
+    } else if (char.joke) {               // Loïc : la blague du jeudi
+      if (player.jokes <= 0) { Sound.move(); return; }
+      player.jokes -= 1;
+      player.actionCd = char.actionCd;
+      const jeudi = new Date().getDay() === 4;
+      const works = jeudi || Math.random() < 0.1;
+      if (works && hippos.length) {
+        for (const h of hippos) laughFx.push({ lane: h.lane, y: h.y, t: 0.9 });
+        hippos = [];
+        Sound.levelUp();
+        showBanner("😂 Blague du jeudi — les hippos sont morts de rire !", "rgba(46,196,130,.95)");
+      } else if (works) {
+        Sound.power();
+        showBanner("😂 Excellente blague… mais aucun hippo pour l'entendre", "rgba(46,196,130,.95)");
+      } else {
+        Sound.hurt();
+        showBanner("😐 La blague tombe à l'eau… (revenez un jeudi)", "rgba(214,40,40,.92)");
+      }
       updateAmmo();
     }
     // Arnaud : pas de bouton d'action dédié (son pouvoir = saut permanent).
@@ -592,6 +640,7 @@
     else {
       const dir = player.lane <= 2 ? +1 : -1;
       player.lane = clamp(player.lane + dir * 2, 0, LANES - 1);
+      player.laneTimer = 0;
       player.moveCd = NORMAL_MOVE_CD;
       Sound.power();
     }
@@ -646,6 +695,23 @@
     player.slashFx = Math.max(0, player.slashFx - dt);
     player.wakeFx = Math.max(0, player.wakeFx - dt);
     player.coachFx = Math.max(0, player.coachFx - dt);
+    player.sleepyFx = Math.max(0, player.sleepyFx - dt);
+
+    // Coach endormi : camper sur la même ligne l'ennuie profondément
+    player.laneTimer += dt;
+    if (player.laneTimer >= CAMP_LIMIT) {
+      player.laneTimer = 0;
+      score = Math.max(0, score - CAMP_PENALTY);
+      player.sleepyFx = COACH_BIG_TIME;
+      Sound.hurt();
+      showBanner("😴 Le coach s'endort — bouge de ta ligne ! −" + CAMP_PENALTY + " m", "rgba(214,40,40,.92)");
+    }
+
+    // Émojis 😂 de la blague de Loïc
+    for (let i = laughFx.length - 1; i >= 0; i--) {
+      laughFx[i].t -= dt;
+      if (laughFx[i].t <= 0) laughFx.splice(i, 1);
+    }
     if (player.tapWindow > 0) {
       player.tapWindow -= dt;
       if (player.tapWindow <= 0) player.tapArmed = -1;
@@ -675,6 +741,7 @@
         player.outerTimer += dt;
         if (player.outerTimer >= 1) {
           player.lane += player.lane === 0 ? 1 : -1;
+          player.laneTimer = 0;
           player.outerTimer = 0;
           player.wakeFx = 0.25;
           Sound.move();
@@ -769,10 +836,15 @@
 
     let msg = "🚀 Niveau " + level + " — ça accélère !";
     let bg = "rgba(46,196,130,.95)";
-    if (char.cansPerLevel) {              // Camille : nouveau pack de 6
+    if (char.cansPerLevel) {              // Camille / Hélène : munitions rechargées
       player.cans = char.cansPerLevel;
       updateAmmo();
-      msg = "🚀 Niveau " + level + " — pack de 🥫 rechargé !";
+      msg = "🚀 Niveau " + level + " — pack de " + (char.projEmoji || "🥫") + " rechargé !";
+    }
+    if (char.jokesPerLevel) {             // Loïc : nouvelle blague en stock
+      player.jokes = char.jokesPerLevel;
+      updateAmmo();
+      msg = "🚀 Niveau " + level + " — blague rechargée 😂 !";
     }
     if (fewMoves) {                        // le bonus prime sur l'affichage
       msg = "🏅 +" + FEW_MOVES_BONUS + " m — spé moins de coups de bras !";
@@ -781,11 +853,14 @@
     showBanner(msg, bg);
   }
 
-  // Affiche les munitions de Camille sur le bouton d'action (⚡ sinon)
+  // Affiche les munitions (Camille, Hélène, Loïc) sur le bouton d'action (⚡ sinon)
   function updateAmmo() {
     const b = document.getElementById("btnAction");
     if (char && char.canThrow) {
-      b.textContent = "🥫×" + player.cans;
+      b.textContent = (char.projEmoji || "🥫") + "×" + player.cans;
+      b.style.fontSize = "22px";
+    } else if (char && char.joke) {
+      b.textContent = "😂×" + player.jokes;
       b.style.fontSize = "22px";
     } else {
       b.textContent = "⚡";
@@ -819,9 +894,13 @@
     c[type.key] += 1;
     if (c[type.key] >= type.need) {
       c[type.key] = 0;
-      player.lives += 1;
-      Sound.levelUp();
-      showBanner("🏅 " + medalLabel(type.key) + " complète — vie bonus ! ❤️", "rgba(232,184,0,.95)");
+      if (player.lives < MAX_LIVES) {
+        player.lives += 1;
+        Sound.levelUp();
+        showBanner("🏅 " + medalLabel(type.key) + " complète — vie bonus ! ❤️", "rgba(232,184,0,.95)");
+      } else {
+        showBanner("🏅 Déjà " + MAX_LIVES + " vies — c'est le maximum !", "rgba(232,184,0,.95)");
+      }
     }
     updateHud();
   }
@@ -839,8 +918,10 @@
 
   function updateHud() {
     const lives = Math.max(0, player.lives);
-    document.getElementById("lives").textContent =
-      "❤️".repeat(lives) + (lives < 3 ? "🖤".repeat(3 - lives) : "");
+    // Au-delà de 4 vies, un compteur compact évite de déborder du HUD
+    document.getElementById("lives").textContent = lives > 4
+      ? "❤️×" + lives
+      : "❤️".repeat(lives) + (lives < 3 ? "🖤".repeat(3 - lives) : "");
     document.getElementById("score").textContent = Math.floor(score);
     document.getElementById("level").textContent = "Niv. " + level;
     const m = player.medals;
@@ -891,6 +972,17 @@
       ctx.globalAlpha = 1;
     }
 
+    // Le coach endormi débarque quand on campe trop longtemps sur sa ligne
+    if (player.sleepyFx > 0) {
+      ctx.globalAlpha = 0.8 * Math.min(1, player.sleepyFx / COACH_BIG_TIME);
+      const sleepyImg = sprite("sleepy-coach");
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      if (sleepyImg) drawSprite(sleepyImg, W / 2, H / 2, H * 0.95);
+      else { ctx.font = (Math.min(W, H) * 0.7) + "px serif"; ctx.fillText("😴", W / 2, H / 2); }
+      ctx.globalAlpha = 1;
+    }
+
     // Hippos
     const hippoR = laneW * 0.34;
     const hippoImg = sprite("hippo");
@@ -902,11 +994,19 @@
       else drawHippo(x, h.y, hippoR);
     }
 
-    // Canettes en vol (Camille)
+    // Projectiles en vol (canettes de Camille, pintes d'Hélène)
     if (projectiles.length) {
       ctx.font = (laneW * 0.5) + "px serif";
       for (const p of projectiles) {
-        ctx.fillText("🥫", p.lane * laneW + laneW / 2, p.y);
+        ctx.fillText(char.projEmoji || "🥫", p.lane * laneW + laneW / 2, p.y);
+      }
+    }
+
+    // Hippos morts de rire (blague de Loïc)
+    if (laughFx.length) {
+      ctx.font = (laneW * 0.6) + "px serif";
+      for (const l of laughFx) {
+        ctx.fillText("😂", l.lane * laneW + laneW / 2, l.y);
       }
     }
 

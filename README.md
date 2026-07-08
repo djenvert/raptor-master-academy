@@ -8,6 +8,8 @@ https://raptor-master-academy.netlify.app
 
 ## Versions !
 
+v1.7 : deux nouveaux nageurs — Hélène (2 pintes par niveau pour dégommer les hippos, aucun point faible) et Loïc (« blague du jeudi » : tous les hippos meurent de rire, fiable le jeudi seulement, sinon 1 chance sur 10) ; plafond de 10 vies ; le coach endormi sanctionne de 100 m ceux qui campent plus de 7 s sur la même ligne ; Camille ne ralentit plus après le niveau 11
+
 v1.6 : cheat codes Raptor Summer Session — saisis le code obtenu après une séance d'entraînement en vrai dans le carnet, et 10 % de tes mètres IRL alimentent une réserve qui booste ton score de départ à la partie suivante (un code = une seule utilisation)
 
 v1.5 : bouton Ko-fi dans le menu
