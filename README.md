@@ -8,6 +8,8 @@ https://raptor-master-academy.netlify.app
 
 ## Versions !
 
+v1.9 : nouveau nageur **Yannick** — pas besoin d'entraînement, il démarre direct au **niveau 10**… ce qui est à la fois son point fort et son point faible (la difficulté est brutale d'entrée) ; et le classement **« Cette semaine » passe par défaut** au-dessus de l'All-time
+
 v1.8 : deux classements en ligne au lieu d'un — l'ancien « Top 10 mondial » devient le **Top 10 all-time**, et un nouveau classement **« Cette semaine »** repart de zéro chaque dimanche à 20h (heure de Paris). On bascule de l'un à l'autre via des onglets, dans le menu comme sur l'écran de fin de partie
 
 v1.7 : deux nouveaux nageurs — Hélène (2 pintes par niveau pour dégommer les hippos, aucun point faible) et Loïc (« blague du jeudi » : tous les hippos meurent de rire, fiable le jeudi seulement, sinon 1 chance sur 10) ; plafond de 10 vies ; le coach endormi sanctionne de 100 m ceux qui campent plus de 7 s sur la même ligne ; Camille ne ralentit plus après le niveau 11

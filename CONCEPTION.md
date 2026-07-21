@@ -1,6 +1,6 @@
 # Conception — Raptor Master Academy
 
-Document de référence du jeu (à jour v1.8). Le plan initial (v1.0) est obsolète : ce fichier
+Document de référence du jeu (à jour v1.9). Le plan initial (v1.0) est obsolète : ce fichier
 fait foi. Le changelog utilisateur est dans [README.md](README.md).
 
 ## Vue d'ensemble
@@ -26,6 +26,7 @@ Chacun a un pouvoir (atout) et une faiblesse. Sprites stickers avec repli emoji.
 | **Camille** | Jet de canette qui détruit le 1er hippo devant — **6 canettes/niveau** | De plus en plus lent au fil de la partie |
 | **Mafe** | Se déplace très vite (déplacement continu si on maintient) | Brasse : rebondit d'une ligne vers l'intérieur si elle reste >1 s sur une ligne extérieure |
 | **Zoé** | Saute 2 lignes d'un coup (clone d'Arnaud) | Aucune — la GOAT |
+| **Yannick** | Pas besoin d'entraînement : démarre direct au **niveau 10** | …démarre direct au niveau 10 (difficulté brutale d'entrée) — atout = faiblesse |
 
 ## Le coach Theo (pénalité)
 - Rester **> 5 s cumulées** dans les **2 lignes de droite** (index 3 et 4) déclenche la pénalité.
@@ -46,8 +47,8 @@ Chacun a un pouvoir (atout) et une faiblesse. Sprites stickers avec repli emoji.
 ## Classement
 - **Nom du joueur** mémorisé (`localStorage`), défaut « Nageur loisir ».
 - **Deux classements en ligne**, avec bascule par **onglets** (menu + game over) et le nageur entre parenthèses :
+  - **Cette semaine** — repart de zéro chaque **dimanche 20h (Europe/Paris)** ; **onglet par défaut**.
   - **Top 10 all-time** — cumul de tous les scores depuis toujours.
-  - **Cette semaine** — repart de zéro chaque **dimanche 20h (Europe/Paris)**.
 - Repli **Top 5 local** (hors-ligne) : les onglets se masquent, un seul classement affiché.
 - En ligne = fonction Netlify `scores.mjs` + **Netlify Blobs** (clés `top` et `week`). GET/POST
   renvoient `{ all, week }`. Chaque score joué alimente les deux listes.
@@ -72,7 +73,8 @@ Chacun a un pouvoir (atout) et une faiblesse. Sprites stickers avec repli emoji.
 | `MEDAL_TYPES` | — | rareté et seuils des médailles |
 
 Réglages par nageur dans l'objet `CHARACTERS` (`jump`, `moveCd`, `diveTime`, `doubleTap`,
-`canThrow`, `cansPerLevel`, `slowdown`, `fastMove`, `bounceOuter`, `lateVision`, `color`, `img`).
+`canThrow`, `cansPerLevel`, `slowdown`, `fastMove`, `bounceOuter`, `lateVision`, `startLevel`,
+`color`, `img`). `startLevel` (Yannick = 10) cale `level` et `elapsed` au démarrage.
 
 ## Graphismes & assets
 - Stickers chibi générés à partir de photos réelles — voir [assets/PROMPT.md](assets/PROMPT.md).

@@ -279,7 +279,7 @@
           10 % de tes mètres IRL en bonus au départ de ta prochaine partie !
         </div>
       </div>
-      <div class="footer">v1.8 &nbsp;·&nbsp; 💡 C'est Arthur qui a eu l'idée</div>
+      <div class="footer">v1.9 &nbsp;·&nbsp; 💡 C'est Arthur qui a eu l'idée</div>
       <div class="kofi">
         <script type='text/javascript' src='https://storage.ko-fi.com/cdn/widget/Widget_2.js'></script>
         <script type='text/javascript'>kofiwidget2.init('Paie moi un ☕️', '#0d64fa', 'V8M422PC2P');kofiwidget2.draw();</script>
@@ -396,6 +396,13 @@
       weak: "Aucune faiblesse — la GOAT",
       jump: 2, actionCd: 0,
     },
+    {
+      id: "yannick", name: "Yannick", emoji: "🚀", back: "🏊", color: "#0984e3",
+      img: "yannick",
+      power: "Pas besoin d'entraînement : démarre direct au niveau 10 🚀",
+      weak: "Pas besoin d'entraînement : démarre direct au niveau 10 😅",
+      jump: 1, actionCd: 0, startLevel: 10,
+    },
   ];
 
   // ---------- État ----------
@@ -421,7 +428,7 @@
   // Les PNG présents dans assets/ remplacent les pastilles emoji ; sinon on garde
   // le rendu emoji (repli automatique). Clé = nom de fichier (sans .png).
   const IMAGES = {};
-  const SPRITE_FILES = ["arnaud", "leo", "leo-dive", "raph", "camille", "mafe", "zoe", "helene", "loic", "theo", "sleepy-coach", "hippo", "backstroke"];
+  const SPRITE_FILES = ["arnaud", "leo", "leo-dive", "raph", "camille", "mafe", "zoe", "helene", "loic", "yannick", "theo", "sleepy-coach", "hippo", "backstroke"];
   function preloadSprites() {
     for (const name of SPRITE_FILES) {
       const img = new Image();
@@ -504,8 +511,10 @@
     laughFx = [];
     medalTimer = 3;
     score = 0;
-    elapsed = 0;
-    level = 1;
+    // Niveau de départ (Yannick démarre au 10) ; on cale elapsed pour que la
+    // difficulté et la logique de palier restent cohérentes.
+    level = character.startLevel || 1;
+    elapsed = (level - 1) * LEVEL_TIME;
     spawnTimer = 0.6;
     sylviePenaltyActive = false;
     levelBannerTimer = 0;
@@ -526,7 +535,7 @@
     }
     updateHud();
     updateAmmo();
-    Sound.setTempo(1);
+    Sound.setTempo(level);
     Sound.start();
     lastTime = performance.now();
   }
@@ -1222,7 +1231,7 @@
   // chaque dimanche 20h côté serveur). On bascule entre les deux via onglets.
   const API_URL = "/.netlify/functions/scores";
   let globalBoards = null;   // { all:[], week:[] } si dispo, sinon null → Top 5 local
-  let activeTab = "all";     // "all" | "week"
+  let activeTab = "week";    // "all" | "week" — la semaine s'affiche par défaut
   let lastEntry = null;      // dernier score joué, pour surligner sur l'écran game over
 
   const TAB_TITLES = { all: "🏆 Top 10 all-time", week: "🗓️ Cette semaine" };
@@ -1257,7 +1266,7 @@
   function renderTabs(el) {
     if (!globalBoards) { el.classList.add("hidden"); el.innerHTML = ""; return; }
     el.classList.remove("hidden");
-    el.innerHTML = ["all", "week"].map(t =>
+    el.innerHTML = ["week", "all"].map(t =>
       '<button class="tab' + (t === activeTab ? " on" : "") + '" data-tab="' + t + '">' +
       (t === "all" ? "All-time" : "Cette semaine") + '</button>'
     ).join("");
