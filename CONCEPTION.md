@@ -1,6 +1,6 @@
 # Conception — Raptor Master Academy
 
-Document de référence du jeu (à jour v1.5). Le plan initial (v1.0) est obsolète : ce fichier
+Document de référence du jeu (à jour v1.8). Le plan initial (v1.0) est obsolète : ce fichier
 fait foi. Le changelog utilisateur est dans [README.md](README.md).
 
 ## Vue d'ensemble
@@ -45,8 +45,15 @@ Chacun a un pouvoir (atout) et une faiblesse. Sprites stickers avec repli emoji.
 
 ## Classement
 - **Nom du joueur** mémorisé (`localStorage`), défaut « Nageur loisir ».
-- **Top 5 local** (hors-ligne) et **Top 10 mondial** partagé, avec le nageur utilisé entre parenthèses.
-- Mondial = fonction Netlify `scores.mjs` + **Netlify Blobs** ; repli automatique sur le local si indisponible.
+- **Deux classements en ligne**, avec bascule par **onglets** (menu + game over) et le nageur entre parenthèses :
+  - **Top 10 all-time** — cumul de tous les scores depuis toujours.
+  - **Cette semaine** — repart de zéro chaque **dimanche 20h (Europe/Paris)**.
+- Repli **Top 5 local** (hors-ligne) : les onglets se masquent, un seul classement affiché.
+- En ligne = fonction Netlify `scores.mjs` + **Netlify Blobs** (clés `top` et `week`). GET/POST
+  renvoient `{ all, week }`. Chaque score joué alimente les deux listes.
+- Reset hebdo **sans tâche planifiée** : le serveur calcule à chaque requête l'identifiant de la
+  semaine (`periodId` = date du dernier dimanche 20h Paris, DST géré via `Intl`) ; si celui stocké
+  diffère, la liste `week` est considérée périmée et repart vide.
 - Anti-triche léger (bornage des scores) ; les scores viennent du navigateur, donc falsifiables.
 
 ## Constantes réglables (haut du `<script>` dans `index.html`)

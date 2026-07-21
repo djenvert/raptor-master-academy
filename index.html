@@ -210,6 +210,15 @@
   .board .row .who small { opacity: .6; }
   .board .row .sc { color: #ffe08a; font-variant-numeric: tabular-nums; white-space: nowrap; }
   .board .empty { opacity: .5; font-size: 13px; }
+
+  /* Onglets de classement (All-time / Cette semaine) */
+  .tabs { display: flex; gap: 6px; justify-content: center; width: 100%; max-width: 340px; margin: 8px auto 6px; }
+  .tab {
+    flex: 1; padding: 5px 8px; font-size: 13px; font-weight: bold; font-family: inherit;
+    color: #ffe08a; background: rgba(255,255,255,.07);
+    border: 1px solid rgba(255,224,138,.25); border-radius: 8px; cursor: pointer;
+  }
+  .tab.on { background: rgba(255,183,3,.28); color: #fff; }
 </style>
 </head>
 <body>
@@ -249,6 +258,7 @@
         <label for="nameInput">Ton nom :</label>
         <input id="nameInput" type="text" maxlength="16" autocomplete="off" spellcheck="false">
       </div>
+      <div id="menuTabs" class="tabs hidden"></div>
       <div id="menuBoard" class="board"></div>
       <div class="prompt">Choisis ton nageur :</div>
       <div class="cards" id="cards"></div>
@@ -269,7 +279,7 @@
           10 % de tes mètres IRL en bonus au départ de ta prochaine partie !
         </div>
       </div>
-      <div class="footer">v1.7 &nbsp;·&nbsp; 💡 C'est Arthur qui a eu l'idée</div>
+      <div class="footer">v1.8 &nbsp;·&nbsp; 💡 C'est Arthur qui a eu l'idée</div>
       <div class="kofi">
         <script type='text/javascript' src='https://storage.ko-fi.com/cdn/widget/Widget_2.js'></script>
         <script type='text/javascript'>kofiwidget2.init('Paie moi un ☕️', '#0d64fa', 'V8M422PC2P');kofiwidget2.draw();</script>
@@ -282,6 +292,7 @@
       <div class="subtitle" id="goName"></div>
       <div id="finalScore">0 m</div>
       <div id="newRecord">🎉 Nouveau record !</div>
+      <div id="goTabs" class="tabs hidden"></div>
       <div id="goBoard" class="board"></div>
       <button class="bigbtn" id="replayBtn">Rejouer</button>
       <div class="hint">Un autre nageur, peut-être ?</div>
@@ -1207,15 +1218,26 @@
   });
 
   // ---------- Classement (mondial via Netlify, repli local) ----------
+  // Deux classements : "all" (all-time) et "week" (semaine en cours, reset
+  // chaque dimanche 20h côté serveur). On bascule entre les deux via onglets.
   const API_URL = "/.netlify/functions/scores";
-  const GLOBAL_TOP = 10;
-  let globalScores = null; // null = indisponible → on affiche le Top 5 local
+  let globalBoards = null;   // { all:[], week:[] } si dispo, sinon null → Top 5 local
+  let activeTab = "all";     // "all" | "week"
+  let lastEntry = null;      // dernier score joué, pour surligner sur l'écran game over
 
-  function boardTitle() {
-    return globalScores ? "🏆 Top " + GLOBAL_TOP + " mondial" : "🏆 Top 5 (local)";
-  }
+  const TAB_TITLES = { all: "🏆 Top 10 all-time", week: "🗓️ Cette semaine" };
+
   function esc(s) {
     return String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  }
+  // Liste + titre à afficher selon l'onglet actif (repli local si hors-ligne).
+  function boardData(tab) {
+    if (!globalBoards) return { list: scores, title: "🏆 Top 5 (local)" };
+    return { list: globalBoards[tab] || [], title: TAB_TITLES[tab] };
+  }
+  function hlIndex(list, entry) {
+    if (!list || !entry) return -1;
+    return list.findIndex(s => s.name === entry.name && s.score === entry.score && s.char === entry.char);
   }
   function renderBoard(el, list, hl, title) {
     if (!list || !list.length) {
@@ -1231,23 +1253,49 @@
     });
     el.innerHTML = html;
   }
-  function refreshMenu() {
-    renderBoard(document.getElementById("menuBoard"), globalScores || scores, -1, boardTitle());
+  // Barre d'onglets (masquée en repli local : un seul classement dispo).
+  function renderTabs(el) {
+    if (!globalBoards) { el.classList.add("hidden"); el.innerHTML = ""; return; }
+    el.classList.remove("hidden");
+    el.innerHTML = ["all", "week"].map(t =>
+      '<button class="tab' + (t === activeTab ? " on" : "") + '" data-tab="' + t + '">' +
+      (t === "all" ? "All-time" : "Cette semaine") + '</button>'
+    ).join("");
   }
-  // Récupère le classement mondial (silencieux si indisponible : hors-ligne, file://…)
+  function refreshMenu() {
+    renderTabs(document.getElementById("menuTabs"));
+    const { list, title } = boardData(activeTab);
+    renderBoard(document.getElementById("menuBoard"), list, -1, title);
+  }
+  function refreshGameOver() {
+    renderTabs(document.getElementById("goTabs"));
+    const { list, title } = boardData(activeTab);
+    renderBoard(document.getElementById("goBoard"), list, hlIndex(list, lastEntry), title);
+  }
+  // Clic sur un onglet (délégué, partagé menu + game over).
+  ["menuTabs", "goTabs"].forEach(id => {
+    document.getElementById(id).addEventListener("click", (e) => {
+      const b = e.target.closest(".tab");
+      if (!b) return;
+      activeTab = b.dataset.tab;
+      refreshMenu();
+      refreshGameOver();
+    });
+  });
+  // Récupère les classements (silencieux si indisponible : hors-ligne, file://…)
   async function loadGlobal() {
     try {
       const res = await fetch(API_URL, { cache: "no-store" });
       if (!res.ok) throw 0;
-      globalScores = await res.json();
+      globalBoards = await res.json();
     } catch (e) {
-      globalScores = null;
+      globalBoards = null;
     }
     refreshMenu();
   }
   // Envoie le score en fin de partie et met à jour l'écran game over
   async function submitScore(entry) {
-    const goEl = document.getElementById("goBoard");
+    lastEntry = entry;
     try {
       const res = await fetch(API_URL, {
         method: "POST",
@@ -1255,11 +1303,11 @@
         body: JSON.stringify(entry),
       });
       if (!res.ok) throw 0;
-      globalScores = await res.json();
-      const hl = globalScores.findIndex(s => s.name === entry.name && s.score === entry.score && s.char === entry.char);
-      renderBoard(goEl, globalScores, hl, boardTitle());
+      globalBoards = await res.json();
+      refreshGameOver();
+      refreshMenu();
     } catch (e) {
-      renderBoard(goEl, scores, scores.indexOf(entry), "🏆 Top 5 (local)"); // repli
+      renderBoard(document.getElementById("goBoard"), scores, scores.indexOf(entry), "🏆 Top 5 (local)"); // repli
     }
   }
 
