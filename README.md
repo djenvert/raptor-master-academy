@@ -8,6 +8,8 @@ https://raptor-master-academy.netlify.app
 
 ## Versions !
 
+v1.13 : jeu **plus rapide dès le niveau 1** (hippos à 230 px/s au départ au lieu de 190) ; fini les bandeaux en haut de l'écran pendant la partie : les messages flottent au milieu de la piscine et s'effacent seuls, la pénalité du coach devient un compte à rebours discret dans le HUD, et les annonces de niveau sont remplacées par un clignotement de l'indicateur « Niv. » (merci Morgan)
+
 v1.12 : **podium** des 3 premiers avec l'avatar du nageur joué, dans les classements « Cette semaine » et « All-time » ; **bouton pause** (⏸️, ou P / Échap), avec pause automatique quand l'appli passe en arrière-plan ; correctif mobile : le haut du menu (logo, nom, classement) n'était plus accessible quand la liste des nageurs dépassait l'écran
 
 v1.11 : **animation de lancement** — au choix du nageur, son avatar s'affiche en grand puis glisse en rétrécissant jusqu'à sa place en bas de la piscine avant le départ (désactivée si le téléphone demande de réduire les animations)

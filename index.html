@@ -59,17 +59,11 @@
   #hud .right { text-align: right; }
   #score { font-variant-numeric: tabular-nums; }
 
-  /* Bandeau Sylvie */
-  #sylvieBanner {
-    position: absolute; top: 46px; left: 0; right: 0;
-    text-align: center; padding: 8px;
-    background: rgba(214, 40, 40, .92);
-    font-weight: bold; font-size: 15px;
-    letter-spacing: .3px;
-    z-index: 6; display: none;
-    animation: pulse .6s infinite alternate;
+  /* Compte à rebours de la pénalité « dos à deux bras » (dans le HUD) */
+  #penaltyTag {
+    font-size: 14px; padding: 2px 7px; border-radius: 8px;
+    background: rgba(214, 40, 40, .55); font-variant-numeric: tabular-nums;
   }
-  @keyframes pulse { from { opacity: .75; } to { opacity: 1; } }
 
   /* Boutons tactiles */
   #controls {
@@ -145,7 +139,9 @@
 
   /* HUD : niveau + bouton son */
   #hud .center { display: flex; align-items: center; gap: 8px; }
-  #level { font-size: 16px; opacity: .92; }
+  #level { font-size: 16px; opacity: .92; display: inline-block; }
+  #level.flash { animation: levelFlash .7s ease-out; }
+  @keyframes levelFlash { 0% { transform: scale(1.6); color: var(--accent); } 100% { transform: scale(1); } }
   #muteBtn, #pauseBtn {
     pointer-events: auto;
     background: rgba(255,255,255,.14);
@@ -163,13 +159,13 @@
     z-index: 5; pointer-events: none;
   }
 
-  /* Bandeau montée de niveau */
+  /* Messages de jeu : texte flottant sans fond, au milieu de la piscine, qui s'efface seul.
+     Ne masque ni les hippos qui arrivent en haut ni le compteur de médailles. */
   #levelBanner {
-    position: absolute; top: 46px; left: 0; right: 0;
-    text-align: center; padding: 8px;
-    background: rgba(46, 196, 130, .95);
-    font-weight: bold; font-size: 17px; letter-spacing: .3px;
-    z-index: 7; display: none;
+    position: absolute; top: 36%; left: 16px; right: 16px;
+    text-align: center;
+    font-weight: bold; font-size: 19px; line-height: 1.3; letter-spacing: .3px;
+    z-index: 7; display: none; pointer-events: none;
   }
 
   /* Records */
@@ -267,6 +263,7 @@
     <div id="hud" class="hidden">
       <div class="left" id="lives">❤️❤️❤️</div>
       <div class="center">
+        <span id="penaltyTag" class="hidden"></span>
         <span id="level">Niv. 1</span>
         <button id="muteBtn" aria-label="Son">🔊</button>
         <button id="pauseBtn" aria-label="Pause">⏸️</button>
@@ -275,7 +272,6 @@
     </div>
 
     <div id="medals" class="hidden"></div>
-    <div id="sylvieBanner">🧑‍🏫 Le coach Theo te surveille — dos à deux bras !</div>
     <div id="levelBanner"></div>
 
     <div id="controls" class="hidden">
@@ -318,7 +314,7 @@
           10 % de tes mètres IRL en bonus au départ de ta prochaine partie !
         </div>
       </div>
-      <div class="footer">v1.12 &nbsp;·&nbsp; 💡 C'est Arthur qui a eu l'idée</div>
+      <div class="footer">v1.13 &nbsp;·&nbsp; 💡 C'est Arthur qui a eu l'idée</div>
       <div class="kofi">
         <script type='text/javascript' src='https://storage.ko-fi.com/cdn/widget/Widget_2.js'></script>
         <script type='text/javascript'>kofiwidget2.init('Paie moi un ☕️', '#0d64fa', 'V8M422PC2P');kofiwidget2.draw();</script>
@@ -352,7 +348,7 @@
 
   // ---------- Config ----------
   const LANES = 5;
-  const BASE_HIPPO_SPEED = 190;      // px/s au niveau 1
+  const BASE_HIPPO_SPEED = 230;      // px/s au niveau 1 (190 jusqu'à la v1.12)
   const LEVEL_TIME = 16;             // s de survie par niveau
   const SPEED_PER_LEVEL = 72;        // px/s par niveau — courbe ×3 : niveau 4 ≈ ancien niveau 10
   const SPAWN_PER_LEVEL = 0.39;      // réduction de l'intervalle de spawn par niveau (×3)
@@ -741,7 +737,7 @@
     document.getElementById("controls").classList.add("hidden");
     document.getElementById("hud").classList.add("hidden");
     document.getElementById("medals").classList.add("hidden");
-    document.getElementById("sylvieBanner").style.display = "none";
+    document.getElementById("penaltyTag").classList.add("hidden");
     document.getElementById("levelBanner").style.display = "none";
     document.getElementById("goName").textContent = char.emoji + " " + char.name + " — Niveau " + level;
     document.getElementById("finalScore").textContent = final + " m";
@@ -888,7 +884,9 @@
     }
     if (levelBannerTimer > 0) {
       levelBannerTimer -= dt;
-      if (levelBannerTimer <= 0) document.getElementById("levelBanner").style.display = "none";
+      const b = document.getElementById("levelBanner");
+      if (levelBannerTimer <= 0) b.style.display = "none";
+      else b.style.opacity = Math.min(1, levelBannerTimer / 0.5); // fondu de sortie
     }
 
     // Timers joueur
@@ -932,11 +930,14 @@
         player.penalty = PENALTY_TIME;
         sylviePenaltyActive = true;
         player.coachFx = COACH_BIG_TIME; // Théo débarque en grand
+        showBanner(SKIN.coachEmoji + " Le coach Theo t'a vu — dos à deux bras " + PENALTY_TIME + " s !", "rgba(214,40,40,.95)");
       }
     } else {
       player.sylvieTimer = Math.max(0, player.sylvieTimer - dt * 2); // se recharge doucement
     }
-    document.getElementById("sylvieBanner").style.display = sylviePenaltyActive ? "block" : "none";
+    const tag = document.getElementById("penaltyTag");
+    tag.classList.toggle("hidden", !sylviePenaltyActive);
+    if (sylviePenaltyActive) tag.textContent = "🛌 " + Math.ceil(player.penalty) + " s";
 
     // Faiblesse de Mafe (brasse) : rebond vers l'intérieur si elle reste >1 s sur une ligne extérieure
     if (char.bounceOuter) {
@@ -1038,24 +1039,17 @@
     if (fewMoves) score += FEW_MOVES_BONUS;
     player.movesThisLevel = 0;
 
-    const lv = SKIN.levelEmoji + " Niveau " + level;
-    let msg = lv + " — ça accélère !";
-    let bg = "rgba(46,196,130,.95)";
-    if (char.cansPerLevel) {              // Camille / Hélène : munitions rechargées
-      player.cans = char.cansPerLevel;
-      updateAmmo();
-      msg = lv + " — pack de " + (char.projEmoji || "🥫") + " rechargé !";
-    }
-    if (char.jokesPerLevel) {             // Loïc : nouvelle blague en stock
-      player.jokes = char.jokesPerLevel;
-      updateAmmo();
-      msg = lv + " — blague rechargée 😂 !";
-    }
-    if (fewMoves) {                        // le bonus prime sur l'affichage
-      msg = "🏅 +" + FEW_MOVES_BONUS + " m — spé moins de coups de bras !";
-      bg = "rgba(232,184,0,.95)";
-    }
-    showBanner(msg, bg);
+    // Munitions rechargées : le bouton d'action affiche déjà le stock
+    if (char.cansPerLevel) { player.cans = char.cansPerLevel; updateAmmo(); }   // Camille / Hélène
+    if (char.jokesPerLevel) { player.jokes = char.jokesPerLevel; updateAmmo(); } // Loïc
+
+    // Pas de message pour le niveau (la musique accélère déjà) : l'indicateur clignote
+    const lvEl = document.getElementById("level");
+    lvEl.classList.remove("flash");
+    void lvEl.offsetWidth; // relance l'animation
+    lvEl.classList.add("flash");
+
+    if (fewMoves) showBanner(SKIN.medalEmoji + " +" + FEW_MOVES_BONUS + " m — spé moins de coups de bras !", "rgba(232,184,0,.95)");
   }
 
   // Affiche les munitions (Camille, Hélène, Loïc) sur le bouton d'action (⚡ sinon)
@@ -1073,12 +1067,14 @@
     }
   }
 
-  function showBanner(text, bg) {
+  // Message flottant ; la couleur sert de halo autour du texte (vert = info, or = gain, rouge = sanction)
+  function showBanner(text, tint) {
     const b = document.getElementById("levelBanner");
     b.textContent = text;
-    b.style.background = bg;
+    b.style.textShadow = "0 2px 3px rgba(0,0,0,.9), 0 0 12px " + tint + ", 0 0 22px " + tint;
+    b.style.opacity = 1;
     b.style.display = "block";
-    levelBannerTimer = 1.6;
+    levelBannerTimer = 1.8;
   }
 
   // ---------- Médailles ----------
@@ -1741,8 +1737,6 @@
     document.title = THEME.docTitle;
     document.getElementById("menuTitle").textContent = THEME.title;
     document.getElementById("menuSubtitle").textContent = THEME.subtitle;
-    document.getElementById("sylvieBanner").textContent =
-      SKIN.coachEmoji + " Le coach Theo te surveille — dos à deux bras !";
   }
 
   // ---------- Init ----------
