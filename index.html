@@ -101,6 +101,11 @@
     text-align: center; padding: 24px;
     z-index: 10; overflow-y: auto;
   }
+  /* Centrage vertical sans couper le haut quand le contenu déborde (menu long sur mobile) :
+     des marges auto valent 0 dès qu'il n'y a plus de place, contrairement à justify-content. */
+  .overlay { justify-content: flex-start; }
+  .overlay > :first-child { margin-top: auto; }
+  .overlay > :last-child { margin-bottom: auto; }
   .hidden { display: none !important; }
   #logo { width: 150px; max-width: 55%; height: auto; margin-bottom: 6px;
           filter: drop-shadow(0 4px 10px rgba(0,0,0,.5)); }
@@ -141,14 +146,14 @@
   /* HUD : niveau + bouton son */
   #hud .center { display: flex; align-items: center; gap: 8px; }
   #level { font-size: 16px; opacity: .92; }
-  #muteBtn {
+  #muteBtn, #pauseBtn {
     pointer-events: auto;
     background: rgba(255,255,255,.14);
     border: 2px solid rgba(255,255,255,.28);
     border-radius: 10px; color: #fff; cursor: pointer;
     font-size: 15px; padding: 3px 8px; line-height: 1;
   }
-  #muteBtn:active { transform: scale(.94); }
+  #muteBtn:active, #pauseBtn:active { transform: scale(.94); }
 
   /* HUD médailles (progression vers vie bonus) */
   #medals {
@@ -219,6 +224,28 @@
   .board .row .sc { color: var(--hl); font-variant-numeric: tabular-nums; white-space: nowrap; }
   .board .empty { opacity: .5; font-size: 13px; }
 
+  /* Podium des 3 premiers (2e — 1er — 3e) */
+  .podium { display: flex; align-items: flex-end; justify-content: center; gap: 6px; margin: 4px 0 8px; }
+  .podium .place { flex: 1; max-width: 110px; display: flex; flex-direction: column; align-items: center; min-width: 0; }
+  .podium .pav { height: 64px; width: 64px; object-fit: contain; font-size: 40px; line-height: 64px; text-align: center;
+                 filter: drop-shadow(0 3px 6px rgba(0,0,0,.5)); }
+  .podium .p1 .pav { height: 84px; width: 84px; font-size: 54px; line-height: 84px; }
+  .podium .pname { font-size: 12px; font-weight: bold; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .podium .psc { font-size: 12px; color: var(--hl); font-variant-numeric: tabular-nums; }
+  .podium .step {
+    width: 100%; margin-top: 3px; border-radius: 8px 8px 0 0;
+    background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.2); border-bottom: none;
+    font-weight: bold; font-size: 18px; display: flex; align-items: flex-start; justify-content: center; padding-top: 4px;
+  }
+  .podium .p1 .step { height: 46px; background: rgba(255,215,0,.30); }
+  .podium .p2 .step { height: 32px; background: rgba(192,192,192,.26); }
+  .podium .p3 .step { height: 22px; background: rgba(205,127,50,.28); }
+  .podium .place.me .step { box-shadow: 0 0 0 2px var(--accent); }
+  .podium .place.empty { visibility: hidden; }
+
+  /* Pause */
+  #pause h1 { margin-bottom: 14px; }
+
   /* Onglets de classement (All-time / Cette semaine) */
   .tabs { display: flex; gap: 6px; justify-content: center; width: 100%; max-width: 340px; margin: 8px auto 6px; }
   .tab {
@@ -242,6 +269,7 @@
       <div class="center">
         <span id="level">Niv. 1</span>
         <button id="muteBtn" aria-label="Son">🔊</button>
+        <button id="pauseBtn" aria-label="Pause">⏸️</button>
       </div>
       <div class="right"><span id="score">0</span> m</div>
     </div>
@@ -290,11 +318,18 @@
           10 % de tes mètres IRL en bonus au départ de ta prochaine partie !
         </div>
       </div>
-      <div class="footer">v1.11 &nbsp;·&nbsp; 💡 C'est Arthur qui a eu l'idée</div>
+      <div class="footer">v1.12 &nbsp;·&nbsp; 💡 C'est Arthur qui a eu l'idée</div>
       <div class="kofi">
         <script type='text/javascript' src='https://storage.ko-fi.com/cdn/widget/Widget_2.js'></script>
         <script type='text/javascript'>kofiwidget2.init('Paie moi un ☕️', '#0d64fa', 'V8M422PC2P');kofiwidget2.draw();</script>
       </div>
+    </div>
+
+    <!-- Pause -->
+    <div id="pause" class="overlay hidden">
+      <h1>⏸️ Pause</h1>
+      <button class="bigbtn" id="resumeBtn">Reprendre</button>
+      <div class="hint">Espace, P ou Échap pour reprendre</div>
     </div>
 
     <!-- Game Over -->
@@ -548,7 +583,7 @@
   const ctx = canvas.getContext("2d");
   let W = 0, H = 0, laneW = 0, cellH = 0, DPR = 1;
 
-  let gameState = "menu"; // menu | playing | gameover
+  let gameState = "menu"; // menu | playing | paused | gameover
   let char = null;
   let player, hippos, projectiles, medalItems, medalTimer, score, spawnTimer, elapsed, lastTime, level;
   let laughFx = []; // émojis 😂 laissés par la blague de Loïc
@@ -1387,6 +1422,27 @@
     };
   })();
 
+  // ---------- Pause ----------
+  function pauseGame() {
+    if (gameState !== "playing") return;
+    gameState = "paused";
+    Sound.stop();
+    document.getElementById("pause").classList.remove("hidden");
+  }
+  function resumeGame() {
+    if (gameState !== "paused") return;
+    document.getElementById("pause").classList.add("hidden");
+    gameState = "playing";
+    Sound.start();
+  }
+  function togglePause() { gameState === "paused" ? resumeGame() : pauseGame(); }
+  document.getElementById("pauseBtn").addEventListener("click", (e) => {
+    e.preventDefault(); e.stopPropagation(); pauseGame();
+  });
+  document.getElementById("resumeBtn").addEventListener("click", (e) => { e.preventDefault(); resumeGame(); });
+  // Pause automatique si l'onglet passe en arrière-plan (appel, changement d'appli…)
+  document.addEventListener("visibilitychange", () => { if (document.hidden) pauseGame(); });
+
   const muteBtn = document.getElementById("muteBtn");
   function refreshMute() { muteBtn.textContent = Sound.isMuted() ? "🔇" : "🔊"; }
   muteBtn.addEventListener("click", (e) => {
@@ -1396,6 +1452,8 @@
   document.addEventListener("keydown", (e) => {
     if (e.target && e.target.tagName === "INPUT") return; // 'm' autorisé dans le nom
     if (e.key === "m" || e.key === "M") { Sound.toggleMute(); refreshMute(); }
+    else if (e.key === "p" || e.key === "P" || e.key === "Escape") { togglePause(); e.preventDefault(); }
+    else if (gameState === "paused" && (e.key === " " || e.key === "Spacebar")) { resumeGame(); e.preventDefault(); }
   });
 
   // ---------- Classement (mondial via Netlify, repli local) ----------
@@ -1425,14 +1483,43 @@
       el.innerHTML = '<div class="title">' + title + '</div><div class="empty">Aucun score pour l\'instant — à toi de jouer !</div>';
       return;
     }
-    let html = '<div class="title">' + title + '</div>';
+    let html = '<div class="title">' + title + '</div>' + podiumHtml(list, hl);
     list.forEach((e, i) => {
+      if (i < 3) return; // les 3 premiers sont sur le podium
       html += '<div class="row' + (i === hl ? " me" : "") + '">' +
         '<span class="who">' + (i + 1) + ". " + esc(e.name) +
         ' <small>(' + esc(e.char) + ")</small></span>" +
         '<span class="sc">' + e.score + " m</span></div>";
     });
     el.innerHTML = html;
+    // Avatars du podium : version du thème, puis été, sinon l'emoji du perso
+    el.querySelectorAll("img.pav").forEach(img => {
+      const c = CHARACTERS.find(ch => ch.id === img.dataset.char);
+      loadFirst(img, spriteUrls(c.img), () => {
+        const d = document.createElement("div");
+        d.className = "pav";
+        d.textContent = c.emoji;
+        img.replaceWith(d);
+      });
+    });
+  }
+  // Podium : 2e à gauche, 1er au centre, 3e à droite. L'avatar est celui du
+  // nageur joué pour ce score (champ char = nom du personnage).
+  function podiumHtml(list, hl) {
+    let html = '<div class="podium">';
+    for (const i of [1, 0, 2]) {
+      const e = list[i];
+      if (!e) { html += '<div class="place empty p' + (i + 1) + '"><div class="step"></div></div>'; continue; }
+      const c = CHARACTERS.find(ch => ch.name === e.char);
+      const av = c && c.img
+        ? '<img class="pav" alt="" data-char="' + c.id + '">'
+        : '<div class="pav">' + (c ? c.emoji : "🏊") + '</div>';
+      html += '<div class="place p' + (i + 1) + (i === hl ? " me" : "") + '">' + av +
+        '<div class="pname">' + esc(e.name) + '</div>' +
+        '<div class="psc">' + e.score + ' m</div>' +
+        '<div class="step">' + (i + 1) + '</div></div>';
+    }
+    return html + '</div>';
   }
   // Barre d'onglets (masquée en repli local : un seul classement dispo).
   function renderTabs(el) {
