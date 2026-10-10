@@ -8,6 +8,8 @@ https://raptor-master-academy.netlify.app
 
 ## Versions !
 
+v1.10 : **thème Halloween** du 15 octobre au 1er novembre — nageurs et coach en version monstre, hippos fantômes, eau de nuit violette, chauves-souris et citrouilles, purement cosmétique (mêmes règles, même classement) ; aperçu forcé avec `?theme=halloween` ou `?theme=none` ; et **9 nouveaux nageurs** sans point fort ni faiblesse : Antoine, Arthur, Cédric, Estelle, Guillaume, Pascal, Pierre-Yves, Romain et Samira
+
 v1.9 : nouveau nageur **Yannick** — pas besoin d'entraînement, il démarre direct au **niveau 10**… ce qui est à la fois son point fort et son point faible (la difficulté est brutale d'entrée) ; et le classement **« Cette semaine » passe par défaut** au-dessus de l'All-time
 
 v1.8 : deux classements en ligne au lieu d'un — l'ancien « Top 10 mondial » devient le **Top 10 all-time**, et un nouveau classement **« Cette semaine »** repart de zéro chaque dimanche à 20h (heure de Paris). On bascule de l'un à l'autre via des onglets, dans le menu comme sur l'écran de fin de partie

@@ -7,11 +7,19 @@
 <link rel="icon" type="image/png" href="assets/raptor.png">
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  /* Couleurs d'habillage : valeurs d'été, remplacées par le thème actif (registre THEMES) */
+  :root {
+    --page-bg: #04263f; --game-bg: #063a5e; --text: #fff;
+    --overlay-top: rgba(4,38,63,.92); --overlay-bottom: rgba(2,25,42,.96);
+    --accent: #ffb703; --accent-shadow: #d69200; --accent-ink: #04263f;
+    --hl: #ffe08a; --power: #9fe6ff;
+    --card-hover: rgba(90,200,250,.22); --card-hover-border: #5ac8fa;
+  }
   html, body {
     height: 100%;
     font-family: "Trebuchet MS", "Segoe UI", system-ui, sans-serif;
-    background: #04263f;
-    color: #fff;
+    background: var(--page-bg);
+    color: var(--text);
     overflow: hidden;
     user-select: none;
     touch-action: manipulation;
@@ -32,7 +40,7 @@
     max-width: 520px;
     max-height: 100vh;
     margin: 0 auto;
-    background: #063a5e;
+    background: var(--game-bg);
     box-shadow: 0 0 40px rgba(0,0,0,.5);
     overflow: hidden;
   }
@@ -87,7 +95,7 @@
   /* Overlays */
   .overlay {
     position: absolute; inset: 0;
-    background: linear-gradient(180deg, rgba(4,38,63,.92), rgba(2,25,42,.96));
+    background: linear-gradient(180deg, var(--overlay-top), var(--overlay-bottom));
     display: flex; flex-direction: column;
     align-items: center; justify-content: center;
     text-align: center; padding: 24px;
@@ -110,22 +118,22 @@
     border: 2px solid rgba(255,255,255,.15);
     cursor: pointer;
   }
-  .card:hover, .card:active { background: rgba(90,200,250,.22); border-color: #5ac8fa; }
+  .card:hover, .card:active { background: var(--card-hover); border-color: var(--card-hover-border); }
   .card .avatar { font-size: 58px; flex-shrink: 0; width: 88px; text-align: center; }
   .card .avatarImg { height: 96px; object-fit: contain; }
   .card .name { font-size: 20px; font-weight: bold; }
-  .card .power { font-size: 13px; color: #9fe6ff; margin-top: 3px; }
+  .card .power { font-size: 13px; color: var(--power); margin-top: 3px; }
   .card .weak  { font-size: 13px; color: #ffb3b3; margin-top: 2px; }
 
   .bigbtn {
     margin-top: 22px; padding: 15px 34px;
     font-size: 20px; font-weight: bold;
-    background: #ffb703; color: #04263f;
+    background: var(--accent); color: var(--accent-ink);
     border: none; border-radius: 30px; cursor: pointer;
-    box-shadow: 0 4px 0 #d69200;
+    box-shadow: 0 4px 0 var(--accent-shadow);
   }
-  .bigbtn:active { transform: translateY(3px); box-shadow: 0 1px 0 #d69200; }
-  #finalScore { font-size: 26px; font-weight: bold; margin: 10px 0; color: #ffb703; }
+  .bigbtn:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--accent-shadow); }
+  #finalScore { font-size: 26px; font-weight: bold; margin: 10px 0; color: var(--accent); }
   .hint { font-size: 12px; opacity: .6; margin-top: 18px; line-height: 1.5; }
   .footer { font-size: 11px; opacity: .45; margin-top: 14px; letter-spacing: .3px; }
   .kofi { margin-top: 14px; }
@@ -160,7 +168,7 @@
   }
 
   /* Records */
-  .highline { font-size: 15px; color: #ffe08a; margin-bottom: 14px; }
+  .highline { font-size: 15px; color: var(--hl); margin-bottom: 14px; }
   #newRecord { color: #7CFC98; font-weight: bold; font-size: 16px; margin: 4px 0; display: none; }
 
   /* Champ nom */
@@ -196,11 +204,11 @@
   .cheatmsg { font-size: 13px; min-height: 1.2em; margin-top: 6px; }
   .cheatmsg.ok { color: #7CFC98; }
   .cheatmsg.ko { color: #ffb3b3; }
-  .bonusline { font-size: 14px; color: #ffe08a; font-weight: bold; margin-top: 4px; }
+  .bonusline { font-size: 14px; color: var(--hl); font-weight: bold; margin-top: 4px; }
 
   /* Tableau des scores (Top 5) */
   .board { width: 100%; max-width: 340px; margin: 4px auto 14px; }
-  .board .title { font-weight: bold; color: #ffe08a; margin-bottom: 6px; font-size: 15px; }
+  .board .title { font-weight: bold; color: var(--hl); margin-bottom: 6px; font-size: 15px; }
   .board .row {
     display: flex; justify-content: space-between; gap: 8px;
     padding: 4px 10px; border-radius: 8px; font-size: 14px;
@@ -208,14 +216,14 @@
   .board .row.me { background: rgba(255,183,3,.28); }
   .board .row .who { text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .board .row .who small { opacity: .6; }
-  .board .row .sc { color: #ffe08a; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .board .row .sc { color: var(--hl); font-variant-numeric: tabular-nums; white-space: nowrap; }
   .board .empty { opacity: .5; font-size: 13px; }
 
   /* Onglets de classement (All-time / Cette semaine) */
   .tabs { display: flex; gap: 6px; justify-content: center; width: 100%; max-width: 340px; margin: 8px auto 6px; }
   .tab {
     flex: 1; padding: 5px 8px; font-size: 13px; font-weight: bold; font-family: inherit;
-    color: #ffe08a; background: rgba(255,255,255,.07);
+    color: var(--hl); background: rgba(255,255,255,.07);
     border: 1px solid rgba(255,224,138,.25); border-radius: 8px; cursor: pointer;
   }
   .tab.on { background: rgba(255,183,3,.28); color: #fff; }
@@ -252,8 +260,8 @@
     <!-- Menu -->
     <div id="menu" class="overlay">
       <img id="logo" src="assets/raptor.png" alt="" onerror="this.style.display='none'">
-      <h1>Raptor Master Academy</h1>
-      <div class="subtitle">Évite les hippos. Change de ligne. Survis.</div>
+      <h1 id="menuTitle">Raptor Master Academy</h1>
+      <div class="subtitle" id="menuSubtitle">Évite les hippos. Change de ligne. Survis.</div>
       <div class="namerow">
         <label for="nameInput">Ton nom :</label>
         <input id="nameInput" type="text" maxlength="16" autocomplete="off" spellcheck="false">
@@ -279,7 +287,7 @@
           10 % de tes mètres IRL en bonus au départ de ta prochaine partie !
         </div>
       </div>
-      <div class="footer">v1.9 &nbsp;·&nbsp; 💡 C'est Arthur qui a eu l'idée</div>
+      <div class="footer">v1.10 &nbsp;·&nbsp; 💡 C'est Arthur qui a eu l'idée</div>
       <div class="kofi">
         <script type='text/javascript' src='https://storage.ko-fi.com/cdn/widget/Widget_2.js'></script>
         <script type='text/javascript'>kofiwidget2.init('Paie moi un ☕️', '#0d64fa', 'V8M422PC2P');kofiwidget2.draw();</script>
@@ -403,7 +411,132 @@
       weak: "Pas besoin d'entraînement : démarre direct au niveau 10 😅",
       jump: 1, actionCd: 0, startLevel: 10,
     },
+    // Nageurs sans pouvoir ni faiblesse particuliers
+    {
+      id: "antoine", name: "Antoine", emoji: "🎯", back: "🏊", color: "#00b894",
+      img: "antoine",
+      power: "Rien de spécial — une nage propre et régulière",
+      weak: "Rien de spécial non plus",
+      jump: 1, actionCd: 0,
+    },
+    {
+      id: "arthur", name: "Arthur", emoji: "💡", back: "🏊", color: "#fdcb6e",
+      img: "arthur",
+      power: "Rien de spécial — une nage propre et régulière",
+      weak: "Rien de spécial non plus",
+      jump: 1, actionCd: 0,
+    },
+    {
+      id: "cedric", name: "Cédric", emoji: "🌊", back: "🏊", color: "#0abde3",
+      img: "cedric",
+      power: "Rien de spécial — une nage propre et régulière",
+      weak: "Rien de spécial non plus",
+      jump: 1, actionCd: 0,
+    },
+    {
+      id: "estelle", name: "Estelle", emoji: "🌟", back: "🏊‍♀️", color: "#fd79a8",
+      img: "estelle",
+      power: "Rien de spécial — une nage propre et régulière",
+      weak: "Rien de spécial non plus",
+      jump: 1, actionCd: 0,
+    },
+    {
+      id: "guillaume", name: "Guillaume", emoji: "🎮", back: "🏊", color: "#6c5ce7",
+      img: "guillaume",
+      power: "Rien de spécial — une nage propre et régulière",
+      weak: "Rien de spécial non plus",
+      jump: 1, actionCd: 0,
+    },
+    {
+      id: "pascal", name: "Pascal", emoji: "🧭", back: "🏊", color: "#e17055",
+      img: "pascal",
+      power: "Rien de spécial — une nage propre et régulière",
+      weak: "Rien de spécial non plus",
+      jump: 1, actionCd: 0,
+    },
+    {
+      id: "pierre-yves", name: "Pierre-Yves", emoji: "🦈", back: "🏊", color: "#74b9ff",
+      img: "pierre-yves",
+      power: "Rien de spécial — une nage propre et régulière",
+      weak: "Rien de spécial non plus",
+      jump: 1, actionCd: 0,
+    },
+    {
+      id: "romain", name: "Romain", emoji: "🔥", back: "🏊", color: "#d63031",
+      img: "romain",
+      power: "Rien de spécial — une nage propre et régulière",
+      weak: "Rien de spécial non plus",
+      jump: 1, actionCd: 0,
+    },
+    {
+      id: "samira", name: "Samira", emoji: "🌸", back: "🏊‍♀️", color: "#a29bfe",
+      img: "samira",
+      power: "Rien de spécial — une nage propre et régulière",
+      weak: "Rien de spécial non plus",
+      jump: 1, actionCd: 0,
+    },
   ];
+
+  // ---------- Thèmes saisonniers (purement cosmétiques) ----------
+  // Aucune règle de jeu ne change : seuls les couleurs, sprites, décor et textes.
+  // Période en date locale YYYY-MM-DD (bornes incluses), alignée sur le carnet.
+  // Aperçu forcé : ?theme=<id> ou ?theme=none, mémorisé pour l'onglet.
+  const SUMMER = {
+    water: ["#0a6fa8", "#053a5e"],
+    laneLine: "rgba(255,255,255,0.18)",
+    dangerTint: "rgba(255, 80, 80, 0.06)",
+    hippoBody: "#8a6ca0", hippoStroke: "#3f2f49",
+    coachEmoji: "🧑‍🏫", levelEmoji: "🚀", medalEmoji: "🏅",
+    decor: [],
+  };
+  const THEMES = [
+    {
+      id: "halloween", from: "2026-10-15", to: "2026-11-01",
+      title: "Raptor Halloween Academy", docTitle: "Raptor Halloween Academy 🎃🦛",
+      subtitle: "Évite les hippos fantômes. Change de ligne. Survis. 👻",
+      assets: "assets/halloween/",
+      css: {
+        "--page-bg": "#120a1f", "--game-bg": "#1d1030", "--text": "#f3eaff",
+        "--overlay-top": "rgba(29,16,48,.92)", "--overlay-bottom": "rgba(18,10,31,.96)",
+        "--accent": "#ff8c1a", "--accent-shadow": "#b85d00", "--accent-ink": "#120a1f",
+        "--hl": "#ff8c1a", "--power": "#a6f56b",
+        "--card-hover": "rgba(166,245,107,.16)", "--card-hover-border": "#a6f56b",
+      },
+      water: ["#3d1f63", "#120a1f"],
+      laneLine: "rgba(255,140,26,0.42)",
+      dangerTint: "rgba(255, 80, 80, 0.10)",
+      hippoBody: "rgba(240,236,255,0.82)", hippoStroke: "#b9a8d8", // repli : hippo fantôme
+      coachEmoji: "🧛", levelEmoji: "🎃", medalEmoji: "👻",
+      // Décor fixe : x, y en fraction de l'écran, s en fraction de largeur de ligne.
+      // Tout reste dans la moitié haute (jamais sous les boutons), en semi-transparence.
+      decor: [
+        { e: "🦇", x: 0.30, y: 0.14, s: 0.34, a: 0.55 },
+        { e: "🦇", x: 0.52, y: 0.09, s: 0.22, a: 0.45 },
+        { e: "🦇", x: 0.72, y: 0.20, s: 0.28, a: 0.50 },
+        { e: "🎃", x: 0.20, y: 0.42, s: 0.34, a: 0.60 },
+        { e: "🎃", x: 0.80, y: 0.30, s: 0.34, a: 0.60 },
+      ],
+    },
+  ];
+  function localDay(d) {
+    const p = (n) => String(n).padStart(2, "0");
+    return d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate());
+  }
+  function pickTheme() {
+    let forced = null;
+    try {
+      const q = new URLSearchParams(location.search).get("theme");
+      if (q) sessionStorage.setItem("rma_theme", q);
+      forced = sessionStorage.getItem("rma_theme");
+    } catch (e) {}
+    if (forced === "none") return null;
+    const byId = THEMES.find(t => t.id === forced);
+    if (byId) return byId;
+    const today = localDay(new Date());
+    return THEMES.find(t => today >= t.from && today <= t.to) || null;
+  }
+  const THEME = pickTheme();
+  const SKIN = Object.assign({}, SUMMER, THEME || {});
 
   // ---------- État ----------
   const canvas = document.getElementById("canvas");
@@ -428,13 +561,24 @@
   // Les PNG présents dans assets/ remplacent les pastilles emoji ; sinon on garde
   // le rendu emoji (repli automatique). Clé = nom de fichier (sans .png).
   const IMAGES = {};
-  const SPRITE_FILES = ["arnaud", "leo", "leo-dive", "raph", "camille", "mafe", "zoe", "helene", "loic", "yannick", "theo", "sleepy-coach", "hippo", "backstroke"];
+  const SPRITE_FILES = ["arnaud", "leo", "leo-dive", "raph", "camille", "mafe", "zoe", "helene", "loic", "yannick", "antoine", "arthur", "cedric", "estelle", "guillaume", "pascal", "pierre-yves", "romain", "samira", "theo", "sleepy-coach", "hippo", "backstroke"];
+  // Thème actif : on essaie d'abord sa version, puis celle d'été, puis l'emoji.
+  function spriteUrls(name) {
+    const urls = ["assets/" + name + ".png"];
+    if (THEME && THEME.assets) urls.unshift(THEME.assets + name + ".png");
+    return urls;
+  }
+  // Charge la première URL disponible ; onFail() si aucune ne répond
+  function loadFirst(img, urls, onFail) {
+    let i = 0;
+    img.onerror = () => { if (++i < urls.length) img.src = urls[i]; else if (onFail) onFail(); };
+    img.src = urls[0];
+  }
   function preloadSprites() {
     for (const name of SPRITE_FILES) {
       const img = new Image();
       img.onload = () => { IMAGES[name] = img; };
-      img.onerror = () => { /* fichier absent -> on garde le repli emoji */ };
-      img.src = "assets/" + name + ".png";
+      loadFirst(img, spriteUrls(name)); // fichier absent -> on garde le repli emoji
     }
   }
   function sprite(name) {
@@ -854,17 +998,18 @@
     if (fewMoves) score += FEW_MOVES_BONUS;
     player.movesThisLevel = 0;
 
-    let msg = "🚀 Niveau " + level + " — ça accélère !";
+    const lv = SKIN.levelEmoji + " Niveau " + level;
+    let msg = lv + " — ça accélère !";
     let bg = "rgba(46,196,130,.95)";
     if (char.cansPerLevel) {              // Camille / Hélène : munitions rechargées
       player.cans = char.cansPerLevel;
       updateAmmo();
-      msg = "🚀 Niveau " + level + " — pack de " + (char.projEmoji || "🥫") + " rechargé !";
+      msg = lv + " — pack de " + (char.projEmoji || "🥫") + " rechargé !";
     }
     if (char.jokesPerLevel) {             // Loïc : nouvelle blague en stock
       player.jokes = char.jokesPerLevel;
       updateAmmo();
-      msg = "🚀 Niveau " + level + " — blague rechargée 😂 !";
+      msg = lv + " — blague rechargée 😂 !";
     }
     if (fewMoves) {                        // le bonus prime sur l'affichage
       msg = "🏅 +" + FEW_MOVES_BONUS + " m — spé moins de coups de bras !";
@@ -917,7 +1062,7 @@
       if (player.lives < MAX_LIVES) {
         player.lives += 1;
         Sound.levelUp();
-        showBanner("🏅 " + medalLabel(type.key) + " complète — vie bonus ! ❤️", "rgba(232,184,0,.95)");
+        showBanner(SKIN.medalEmoji + " " + medalLabel(type.key) + " complète — vie bonus ! ❤️", "rgba(232,184,0,.95)");
       } else {
         showBanner("🏅 Déjà " + MAX_LIVES + " vies — c'est le maximum !", "rgba(232,184,0,.95)");
       }
@@ -956,8 +1101,8 @@
     ctx.clearRect(0, 0, W, H);
     // Eau
     const g = ctx.createLinearGradient(0, 0, 0, H);
-    g.addColorStop(0, "#0a6fa8");
-    g.addColorStop(1, "#053a5e");
+    g.addColorStop(0, SKIN.water[0]);
+    g.addColorStop(1, SKIN.water[1]);
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, W, H);
 
@@ -966,10 +1111,10 @@
       const x = l * laneW;
       // Zone de danger (lignes 4-5) légèrement teintée
       if (l >= 3 && l < LANES) {
-        ctx.fillStyle = "rgba(255, 80, 80, 0.06)";
+        ctx.fillStyle = SKIN.dangerTint;
         ctx.fillRect(x, 0, laneW, H);
       }
-      ctx.strokeStyle = "rgba(255,255,255,0.18)";
+      ctx.strokeStyle = SKIN.laneLine;
       ctx.setLineDash([14, 12]);
       ctx.lineWidth = 3;
       ctx.beginPath();
@@ -978,6 +1123,7 @@
       ctx.stroke();
     }
     ctx.setLineDash([]);
+    drawDecor();
 
     if (gameState === "menu") return;
 
@@ -988,7 +1134,7 @@
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
       if (coachImg) drawSprite(coachImg, W / 2, H / 2, H * 0.95);
-      else { ctx.font = (Math.min(W, H) * 0.7) + "px serif"; ctx.fillText("🧑‍🏫", W / 2, H / 2); }
+      else { ctx.font = (Math.min(W, H) * 0.7) + "px serif"; ctx.fillText(SKIN.coachEmoji, W / 2, H / 2); }
       ctx.globalAlpha = 1;
     }
 
@@ -1088,6 +1234,22 @@
 
   }
 
+  // Décor fixe du thème (chauves-souris, citrouilles…), sous les hippos et le nageur.
+  // Rien n'est dessiné dans la bande basse réservée aux boutons tactiles.
+  function drawDecor() {
+    if (!SKIN.decor.length) return;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    for (const d of SKIN.decor) {
+      const y = d.y * H;
+      if (y > H - 160) continue;
+      ctx.globalAlpha = d.a;
+      ctx.font = (laneW * d.s) + "px serif";
+      ctx.fillText(d.e, d.x * W, y);
+    }
+    ctx.globalAlpha = 1;
+  }
+
   // Pastille pleine + emoji par-dessus (toujours visible, même sans police emoji couleur)
   function drawToken(x, y, r, fill, stroke, emoji, emojiSize) {
     ctx.beginPath();
@@ -1107,13 +1269,13 @@
     // corps
     ctx.beginPath();
     ctx.ellipse(x, y, r * 1.15, r, 0, 0, Math.PI * 2);
-    ctx.fillStyle = "#8a6ca0";
+    ctx.fillStyle = SKIN.hippoBody;
     ctx.fill();
     ctx.lineWidth = Math.max(2, r * 0.14);
-    ctx.strokeStyle = "#3f2f49";
+    ctx.strokeStyle = SKIN.hippoStroke;
     ctx.stroke();
     // oreilles
-    ctx.fillStyle = "#8a6ca0";
+    ctx.fillStyle = SKIN.hippoBody;
     for (const s of [-1, 1]) {
       ctx.beginPath();
       ctx.arc(x + s * r * 0.7, y - r * 0.75, r * 0.22, 0, Math.PI * 2);
@@ -1129,7 +1291,7 @@
       ctx.fillStyle = "#111"; ctx.fill();
     }
     // naseaux
-    ctx.fillStyle = "#3f2f49";
+    ctx.fillStyle = SKIN.hippoStroke;
     for (const s of [-1, 1]) {
       ctx.beginPath();
       ctx.ellipse(x + s * r * 0.3, y + r * 0.45, r * 0.12, r * 0.16, 0, 0, Math.PI * 2);
@@ -1409,16 +1571,26 @@
     for (const c of CHARACTERS) {
       const card = document.createElement("div");
       card.className = "card";
-      // Avatar : sticker PNG si présent (repli sur l'emoji si 404)
-      const avatar = c.img
-        ? '<img class="avatar avatarImg" src="assets/' + c.img + '.png" alt="" ' +
-          "onerror=\"this.outerHTML='<div class=&quot;avatar&quot;>" + c.emoji + "</div>'\">"
-        : '<div class="avatar">' + c.emoji + '</div>';
       card.innerHTML =
-        avatar +
         '<div><div class="name">' + c.name + '</div>' +
         '<div class="power">⚡ ' + c.power + '</div>' +
         '<div class="weak">⚠️ ' + c.weak + '</div></div>';
+      // Avatar : sticker PNG (thème, puis été) si présent, sinon l'emoji
+      const emojiAvatar = () => {
+        const d = document.createElement("div");
+        d.className = "avatar";
+        d.textContent = c.emoji;
+        return d;
+      };
+      if (c.img) {
+        const img = document.createElement("img");
+        img.className = "avatar avatarImg";
+        img.alt = "";
+        loadFirst(img, spriteUrls(c.img), () => img.replaceWith(emojiAvatar()));
+        card.prepend(img);
+      } else {
+        card.prepend(emojiAvatar());
+      }
       card.addEventListener("click", () => newGame(c));
       wrap.appendChild(card);
     }
@@ -1432,7 +1604,20 @@
     gameState = "menu";
   });
 
+  // Habillage DOM du thème : couleurs CSS, titres, bandeau du coach
+  function applyTheme() {
+    if (!THEME) return;
+    const root = document.documentElement;
+    for (const k in THEME.css) root.style.setProperty(k, THEME.css[k]);
+    document.title = THEME.docTitle;
+    document.getElementById("menuTitle").textContent = THEME.title;
+    document.getElementById("menuSubtitle").textContent = THEME.subtitle;
+    document.getElementById("sylvieBanner").textContent =
+      SKIN.coachEmoji + " Le coach Theo te surveille — dos à deux bras !";
+  }
+
   // ---------- Init ----------
+  applyTheme();
   preloadSprites();
   buildMenu();
   refreshMenu();
