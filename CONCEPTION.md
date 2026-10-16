@@ -76,6 +76,16 @@ Réglages par nageur dans l'objet `CHARACTERS` (`jump`, `moveCd`, `diveTime`, `d
 `canThrow`, `cansPerLevel`, `slowdown`, `fastMove`, `bounceOuter`, `lateVision`, `startLevel`,
 `color`, `img`). `startLevel` (Yannick = 10) cale `level` et `elapsed` au démarrage.
 
+## Vue 3D (v1.14)
+- Choix **2D / 3D** dans le menu, **3D par défaut**, mémorisé (`localStorage` `rma_view`), forçable avec `?view=2d|3d`.
+- Classement **commun** 2D et 3D (mêmes règles, choix confirmé).
+- Purement visuel : la logique (lignes, positions en px, collisions) est celle de la 2D. Le module
+  `View3D` traduit l'état en scène Three.js (r128, chargé depuis cdnjs **seulement** si la 3D est choisie) :
+  x = ligne, z = position verticale (1 cellule = 1 largeur de ligne), nageur en z = 0.
+- Le canvas WebGL `#canvas3d` est sous le canvas 2D, qui reste transparent en 3D.
+- Couleurs 3D par thème : `sky3d`, `floor3d`, `grout3d`, `stripe3d`, `ropes3d`, `deck3d`.
+- Pas de WebGL ou CDN injoignable → message dans le menu et retour en 2D.
+
 ## Graphismes & assets
 - Stickers chibi générés à partir de photos réelles — voir [assets/PROMPT.md](assets/PROMPT.md).
 - Chargeur d'images : chaque PNG de `assets/` remplace la pastille emoji ; repli automatique sinon.
